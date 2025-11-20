@@ -1,0 +1,53 @@
+# Storage Configuration
+# ===================
+# Settings for data storage backends
+
+storage:
+  # Primary storage backend
+  backend: "csv"  # Options: "csv", "sqlite", "both"
+  
+  # CSV storage settings
+  csv:
+    enabled: true
+    filename: "market_data_v3_detailed.csv"
+    backup_rotation: true
+    max_backup_files: 10
+    
+  # SQLite storage settings (optional)
+  sqlite:
+    enabled: false  # Enable when you need database features
+    filename: "market_data.db"
+    table_name: "market_data_points"
+    enable_wal_mode: true  # Write-Ahead Logging for better performance
+    
+    # Indexing for faster queries
+    indexes:
+      - "timestamp"
+      - "datetime"
+      - "eth_price_usd"
+      
+  # Automatic data validation
+  validation:
+    check_duplicates: true
+    check_data_quality: true
+    alert_on_gaps: true
+
+# Performance settings
+performance:
+  csv:
+    batch_write_size: 100      # Write in batches for better performance
+    use_compression: false     # .csv.gz if true
+    
+  sqlite:
+    batch_insert_size: 1000    # SQLite batch inserts
+    pragma_settings:
+      journal_mode: "WAL"
+      synchronous: "NORMAL"
+      cache_size: 10000
+      temp_store: "MEMORY"
+
+# Data retention policies
+retention:
+  max_records: 100000         # Auto-cleanup after this many records
+  archive_old_data: true      # Move old data to archive files
+  archive_after_days: 365     # Archive data older than 1 year

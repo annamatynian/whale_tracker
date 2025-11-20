@@ -1,0 +1,54 @@
+# Testing Environment Configuration
+# ================================
+# This file overrides base.yaml settings for testing
+
+blockchain:
+  default_network: "ethereum_sepolia"
+  providers:
+    infura:
+      api_key: "test_key"  # Mock key for tests
+
+# Test notifications (disabled or mock)
+notifications:
+  telegram:
+    bot_token: "test_bot_token" 
+    chat_id: "test_chat_id"
+    enabled: false  # Don't send real notifications during tests
+
+# Test monitoring
+monitoring:
+  wallet_addresses:
+    - "0xtest1111111111111111111111111111111111111"
+    - "0xtest2222222222222222222222222222222222222"
+  
+  intervals:
+    check_minutes: 1  # Fast intervals for testing
+    
+  thresholds:
+    default_il_threshold: 0.01  # Lower threshold for easier testing
+
+# Test logging
+logging:
+  level: "DEBUG"
+  file_logging: false  # No file logging in tests
+
+# Testing features
+development:
+  mock_data: true
+  test_mode: true
+  debug_api_calls: false
+
+features:
+  v2_analytics:
+    enabled: true
+  v3_analytics:
+    enabled: true  # Test future features
+  ml_models:
+    enabled: true  # Test ML components
+
+# Fast performance for tests
+performance:
+  max_concurrent_requests: 2
+  request_timeout_seconds: 5
+  cache_ttl_seconds: 1
+  retry_attempts: 1

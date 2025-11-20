@@ -1,0 +1,33 @@
+# LP Health Tracker - Stable Dependencies for Windows
+# ================================================
+
+# Environment variables (essential)
+python-dotenv==1.0.0
+
+# HTTP requests (essential) 
+requests==2.31.0
+
+# Data validation (essential)
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Task scheduling (essential)
+APScheduler==3.10.4
+
+# Async HTTP (try older stable version)
+aiohttp==3.8.6
+
+# Web3 and blockchain (use more stable versions)
+web3==6.9.0
+eth-account==0.8.0
+
+# Data handling (use stable versions with wheels)
+pandas==2.1.4
+numpy==1.24.4
+
+# Logging (optional)
+colorlog==6.7.0
+
+# Testing (for later)
+# pytest==7.4.3
+# pytest-asyncio==0.21.1

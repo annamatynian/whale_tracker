@@ -1,0 +1,14 @@
+# LP Health Tracker - Ultra Minimal Dependencies
+# =============================================
+# Only packages that definitely work on Python 3.13
+
+# Environment variables (pure Python)
+python-dotenv==1.0.0
+
+# HTTP requests (pure Python)
+requests==2.31.0
+
+# Task scheduling (pure Python)
+APScheduler==3.10.4
+
+# That's it! No pydantic, no web3 for now

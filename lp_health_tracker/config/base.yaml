@@ -1,0 +1,164 @@
+# Base Configuration - LP Health Tracker
+# ====================================
+# This file contains all default settings and serves as documentation
+
+# Blockchain RPC Providers
+blockchain:
+  providers:
+    infura:
+      api_key: ""  # Set in environment-specific config
+      priority: 1
+      networks:
+        - "ethereum_mainnet"
+        - "ethereum_sepolia" 
+        - "polygon"
+        - "arbitrum"
+    
+    alchemy:
+      api_key: ""  # Alternative provider
+      priority: 2
+      networks:
+        - "ethereum_mainnet"
+        - "ethereum_sepolia"
+        - "polygon" 
+        - "arbitrum"
+    
+    ankr:
+      api_key: ""  # Free tier, fallback option
+      priority: 3
+      public_endpoints: true
+
+  default_network: "ethereum_sepolia"
+
+# Notification Systems
+notifications:
+  telegram:
+    bot_token: ""  # Required - set in environment config
+    chat_id: ""    # Required - set in environment config
+    enabled: true
+    timeout: 30
+  
+  # Future notification channels
+  discord:
+    enabled: false
+    webhook_url: ""
+    
+  email:
+    enabled: false
+    smtp_server: ""
+    smtp_port: 587
+
+# API Providers for Price Data  
+apis:
+  coingecko:
+    api_key: ""  # Optional but recommended for higher limits
+    base_url: "https://api.coingecko.com/api/v3"
+    rate_limit: 50  # requests per minute for free tier
+    
+  coinmarketcap:
+    api_key: ""
+    enabled: false
+
+# Wallet Monitoring
+monitoring:
+  # Wallet addresses to track
+  wallet_addresses: []  # Set in environment-specific config
+  
+  # Check intervals
+  intervals:
+    check_minutes: 15
+    alert_cooldown_minutes: 60
+    price_update_seconds: 300
+    gas_update_hours: 24  # How often to update real gas costs
+  
+  # Alert thresholds  
+  thresholds:
+    default_il_threshold: 0.05  # 5% impermanent loss
+    gas_spike_threshold: 100.0  # Gwei
+    volume_change_threshold: 0.2  # 20%
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file_logging: true
+  log_rotation: true
+  max_file_size_mb: 10
+  backup_count: 5
+  
+  # Log formatting
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+# Application Features
+features:
+  # V2 Features (current)
+  v2_analytics:
+    enabled: true
+    impermanent_loss_tracking: true
+    fee_tracking: true
+    
+  # V3 Features (planned)
+  v3_analytics:
+    enabled: false
+    concentrated_liquidity: false
+    position_health_metrics: false
+    
+  # ML Features (future)
+  ml_models:
+    enabled: false
+    models_directory: "./models/"
+    training_data_days: 30
+
+# Performance Settings
+performance:
+  max_concurrent_requests: 10
+  request_timeout_seconds: 30
+  cache_ttl_seconds: 300
+  retry_attempts: 3
+  retry_delay_seconds: 1
+
+# Development Settings
+development:
+  mock_data: false
+  test_mode: false
+  debug_api_calls: false
+  
+# Known Contract Addresses
+contracts:
+  ethereum_mainnet:
+    tokens:
+      WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+      USDC: "0xA0b86a33E6c21C64E0eb4ADa7B0b0094a7f6E44C"
+      USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+      DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+      
+    pairs:
+      WETH_USDC_V2: "0xB4e16d0168e52d35CaCD2b6464f00d6eB9002C6D"
+      WETH_USDT_V2: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852" 
+      WETH_DAI_V2: "0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11"
+      
+  ethereum_sepolia:
+    tokens:
+      WETH: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9"
+      
+# Risk Categories for different LP strategies
+risk_categories:
+  very_low:
+    description: "Stablecoin pairs (e.g., USDC/USDT)"
+    recommended_threshold: 0.005
+    max_expected_il: 0.01
+    
+  low:
+    description: "Stablecoin + major token (e.g., ETH/USDC)"
+    recommended_threshold: 0.02
+    max_expected_il: 0.05
+    
+  medium: 
+    description: "Major token pairs (e.g., ETH/BTC)"
+    recommended_threshold: 0.05
+    max_expected_il: 0.10
+    
+  high:
+    description: "Volatile token pairs"
+    recommended_threshold: 0.10
+    max_expected_il: 0.25

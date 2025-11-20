@@ -1,0 +1,52 @@
+{
+    "test_pools": [
+        {
+            "name": "USDC-USDT",
+            "pair_address": "0x2cF7252e74036d1Da831d11089D326296e64a728",
+            "token_a_symbol": "USDC",
+            "token_b_symbol": "USDT",
+            "risk_category": "very_low",
+            "initial_liquidity_a": 1000.0,
+            "initial_liquidity_b": 1000.0,
+            "initial_price_a_usd": 1.0,
+            "initial_price_b_usd": 1.0,
+            "network": "polygon",
+            "protocol": "uniswap_v2",
+            "position_value_usd": 2000.0,
+            "gas_costs_usd": 25.0,
+            "days_held_mock": 30
+        },
+        {
+            "name": "WETH-USDC",
+            "pair_address": "0x853Ee4b2A13f8a742d64C8F088bE7bA2131f670d",
+            "token_a_symbol": "WETH", 
+            "token_b_symbol": "USDC",
+            "risk_category": "medium",
+            "initial_liquidity_a": 0.5,
+            "initial_liquidity_b": 1000.0,
+            "initial_price_a_usd": 2000.0,
+            "initial_price_b_usd": 1.0,
+            "network": "polygon",
+            "protocol": "uniswap_v2",
+            "position_value_usd": 2000.0,
+            "gas_costs_usd": 75.0,
+            "days_held_mock": 45
+        },
+        {
+            "name": "WETH-WBTC",
+            "pair_address": "0x4A35582a710E1F4b2030A3F826DA20BfB6703C09",
+            "token_a_symbol": "WETH", 
+            "token_b_symbol": "WBTC",
+            "risk_category": "medium_high",
+            "initial_liquidity_a": 0.5,
+            "initial_liquidity_b": 0.025,
+            "initial_price_a_usd": 2000.0,
+            "initial_price_b_usd": 40000.0,
+            "network": "polygon",
+            "protocol": "uniswap_v2",
+            "position_value_usd": 2000.0,
+            "gas_costs_usd": 85.0,
+            "days_held_mock": 60
+        }
+    ]
+}

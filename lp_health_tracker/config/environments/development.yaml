@@ -1,0 +1,66 @@
+# Development Environment Configuration
+# ===================================
+# This file overrides base.yaml settings for development
+
+# Blockchain providers with your actual API keys
+blockchain:
+  providers:
+    infura:
+      api_key: "3b91f6359ee4457aae21ade150c06fb1"
+    alchemy:
+      api_key: ""  # Empty - not configured for development
+    ankr:
+      api_key: ""  # From original .env
+  
+  default_network: "ethereum_mainnet"
+
+# Notifications - your actual Telegram config
+notifications:
+  telegram:
+    bot_token: "8238210993:AAG8pK33QiIjupnzdcqaJiUtCh5tinopCmk"
+    chat_id: "764547167"
+
+# APIs - your actual keys
+apis:
+  coingecko:
+    api_key: "CG-5cBmwPRsaCzbCNmExEuBw4cc"
+
+# Wallet monitoring - your actual wallet
+monitoring:
+  wallet_addresses:
+    - "0x742d35Cc6634C0532925a3b8D41141D8F10C473d"
+  
+  intervals:
+    check_minutes: 2  # Faster for development
+    
+  thresholds:
+    default_il_threshold: 0.05
+
+# Development-specific logging
+logging:
+  level: "DEBUG"
+  file_logging: true
+
+# Development features
+development:
+  mock_data: true      # From USE_MOCK_DATA in .env
+  test_mode: false
+  debug_api_calls: true
+  test_network: "ethereum_sepolia"  # From TEST_NETWORK in .env
+
+# Enable more features in development
+features:
+  v2_analytics:
+    enabled: true
+  v3_analytics:
+    enabled: false  # Enable when ready
+  ml_models:
+    enabled: false  # Enable when ready
+
+# Advanced settings from original .env
+performance:
+  max_concurrent_requests: 10  # From MAX_CONCURRENT_REQUESTS
+  request_timeout_seconds: 30  # From API_TIMEOUT_SECONDS  
+  cache_ttl_seconds: 300       # From CACHE_TTL_SECONDS
+  retry_attempts: 3
+  retry_delay_seconds: 1

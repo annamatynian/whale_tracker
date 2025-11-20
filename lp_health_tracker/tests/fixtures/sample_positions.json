@@ -1,0 +1,46 @@
+{
+  "sample_positions": [
+    {
+      "name": "Test WETH-USDC Position",
+      "pair_address": "0xB4e16d0168e52d35CaCD2b6464f00d1e8d5362C6",
+      "token_a_symbol": "WETH",
+      "token_b_symbol": "USDC",
+      "initial_liquidity_a": 0.1,
+      "initial_liquidity_b": 200.0,
+      "initial_price_a_usd": 2000.0,
+      "initial_price_b_usd": 1.0,
+      "lp_tokens_held": 5.0,
+      "il_alert_threshold": 0.05,
+      "protocol": "uniswap_v2",
+      "network": "ethereum_sepolia"
+    },
+    {
+      "name": "Test USDC-USDT Stable Pair",
+      "pair_address": "0x3041CbD36888bECc7bbCBc0045E3B1f144466f5f",
+      "token_a_symbol": "USDC", 
+      "token_b_symbol": "USDT",
+      "initial_liquidity_a": 500.0,
+      "initial_liquidity_b": 500.0,
+      "initial_price_a_usd": 1.0,
+      "initial_price_b_usd": 1.0,
+      "lp_tokens_held": 25.0,
+      "il_alert_threshold": 0.005,
+      "protocol": "uniswap_v2",
+      "network": "ethereum_sepolia"
+    },
+    {
+      "name": "Test Whale WETH-USDC Position",
+      "pair_address": "0xB4e16d0168e52d35CaCD2b6464f00d1e8d5362C6",
+      "token_a_symbol": "WETH",
+      "token_b_symbol": "USDC", 
+      "initial_liquidity_a": 100.0,
+      "initial_liquidity_b": 200000.0,
+      "initial_price_a_usd": 2000.0,
+      "initial_price_b_usd": 1.0,
+      "lp_tokens_held": 500000.0,
+      "il_alert_threshold": 0.03,
+      "protocol": "uniswap_v2",
+      "network": "ethereum_mainnet"
+    }
+  ]
+}

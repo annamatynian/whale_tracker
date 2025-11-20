@@ -1,0 +1,73 @@
+# Historical Data Backfill Configuration
+# =====================================
+# Settings for historical data collection
+
+historical_data:
+  # Time range for historical data collection
+  date_range:
+    start_date: "2023-01-01"  # Format: YYYY-MM-DD
+    end_date: "2025-09-14"    # Yesterday's date, will be updated dynamically
+    
+  # Collection intervals
+  intervals:
+    time_interval: "daily"    # Options: "hourly", "daily"
+    api_delay_seconds: 2      # Delay between API calls to respect rate limits
+    
+  # Output settings
+  output:
+    csv_filename: "historical_macro_data.csv"
+    backup_existing: true
+    
+  # Data sources configuration
+  data_sources:
+    # Which historical data to collect
+    enabled_metrics:
+      - "eth_price_usd"
+      - "log_return" 
+      - "dex_volume_usd"
+      - "cex_volume_usd"
+      - "tvl_usd"
+      
+    # Metrics that cannot be collected historically (will be filled with defaults)
+    unavailable_metrics:
+      - "net_liquidity_change_usd"      # Default: 0.0
+      - "avg_priority_fee_gwei"         # Default: 20.0 (typical value)
+      - "var_priority_fee_gwei"         # Default: 0.0
+      - "outlier_detected"              # Default: false
+      - "max_priority_fee_gwei"         # Default: 0.0
+      - "outlier_percentage"            # Default: 0.0
+      
+  # API-specific settings for historical data
+  historical_apis:
+    coingecko:
+      # Historical price endpoint
+      price_endpoint: "/coins/ethereum/market_chart/range"
+      max_days_per_request: 90  # CoinGecko limit
+      
+    the_graph:
+      # Historical pool data
+      pool_day_data_endpoint: "poolDayDatas"
+      pool_hour_data_endpoint: "poolHourDatas"
+      max_records_per_query: 1000
+      
+    binance:
+      # Historical k-lines for CEX volume
+      klines_endpoint: "/api/v3/klines"
+      symbol: "ETHUSDT"
+      max_records_per_request: 1000
+
+# Default values for unavailable historical metrics
+default_values:
+  gas_metrics:
+    avg_priority_fee_gwei: 20.0      # Typical historical average
+    var_priority_fee_gwei: 0.0       # No variance data available
+    outlier_detected: false          # Conservative default
+    max_priority_fee_gwei: 0.0       # No max data available  
+    outlier_percentage: 0.0          # No outlier data available
+    
+  liquidity_metrics:
+    net_liquidity_change_usd: 0.0    # No historical mint/burn data
+    
+  ratios:
+    dex_cex_volume_ratio: 1.0        # Will be calculated from available data
+    hourly_volume_vs_24h_avg_pct: 100.0  # Will be calculated from available data

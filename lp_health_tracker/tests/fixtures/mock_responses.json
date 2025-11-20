@@ -1,0 +1,122 @@
+{
+  "coingecko_responses": {
+    "eth_price_normal": {
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+      "response": {
+        "ethereum": {
+          "usd": 2000.0
+        }
+      }
+    },
+    "eth_price_doubled": {
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+      "response": {
+        "ethereum": {
+          "usd": 4000.0
+        }
+      }
+    },
+    "multiple_tokens": {
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=ethereum,usd-coin&vs_currencies=usd",
+      "response": {
+        "ethereum": {
+          "usd": 2500.0
+        },
+        "usd-coin": {
+          "usd": 1.0
+        }
+      }
+    },
+    "api_error": {
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+      "status_code": 429,
+      "response": {
+        "error": "rate_limit_exceeded"
+      }
+    }
+  },
+  "web3_responses": {
+    "uniswap_v2_reserves": {
+      "method": "getReserves",
+      "response": [
+        "0x56bc75e2d63100000",
+        "0x2b5e3af16b1880000",
+        "1640995200"
+      ],
+      "decoded": {
+        "reserve0": "100000000000000000000",
+        "reserve1": "200000000000000000000000",
+        "blockTimestampLast": 1640995200
+      }
+    },
+    "lp_token_balance": {
+      "method": "balanceOf",
+      "response": "0x4563918244f40000",
+      "decoded": "5000000000000000000"
+    },
+    "lp_total_supply": {
+      "method": "totalSupply", 
+      "response": "0x3635c9adc5dea00000",
+      "decoded": "1000000000000000000000"
+    },
+    "web3_connection_error": {
+      "error": "HTTPSConnectionPool(host='mainnet.infura.io', port=443): Max retries exceeded"
+    }
+  },
+  "telegram_responses": {
+    "send_message_success": {
+      "url": "https://api.telegram.org/botTOKEN/sendMessage",
+      "response": {
+        "ok": true,
+        "result": {
+          "message_id": 123,
+          "from": {
+            "id": 987654321,
+            "is_bot": true,
+            "first_name": "LP Health Tracker"
+          },
+          "chat": {
+            "id": 123456789,
+            "type": "private"
+          },
+          "date": 1640995200,
+          "text": "🚨 IL Alert: WETH-USDC position"
+        }
+      }
+    },
+    "telegram_api_error": {
+      "url": "https://api.telegram.org/botTOKEN/sendMessage",
+      "status_code": 400,
+      "response": {
+        "ok": false,
+        "error_code": 400,
+        "description": "Bad Request: chat not found"
+      }
+    }
+  },
+  "expected_notifications": {
+    "il_alert": {
+      "type": "IL_ALERT",
+      "title": "🔴 IMPERMANENT LOSS ALERT",
+      "position": "WETH-USDC Uniswap V2",
+      "current_il": "-5.72%",
+      "threshold": "-5.00%",
+      "recommended_action": "Consider rebalancing or exiting position"
+    },
+    "daily_report": {
+      "type": "DAILY_REPORT",
+      "title": "📊 Daily LP Health Report",
+      "positions_count": 3,
+      "total_value": "$12,450.50",
+      "positions_at_risk": 1,
+      "report_time": "2024-01-01 08:00:00"
+    },
+    "startup": {
+      "type": "STARTUP",
+      "title": "🟢 LP Health Tracker Started",
+      "check_interval": "15 minutes",
+      "positions_loaded": 3,
+      "startup_time": "2024-01-01 10:30:00"
+    }
+  }
+}
