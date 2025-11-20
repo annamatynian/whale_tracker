@@ -1,0 +1,2 @@
+# Vector databases for RAG system
+# ChromaDB collections: scam_patterns, success_patterns, team_reputation, influence_network

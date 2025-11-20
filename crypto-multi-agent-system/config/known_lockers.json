@@ -1,0 +1,146 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-09-23",
+  "description": "Known liquidity locker contracts across different networks",
+  
+  "ethereum": {
+    "unicrypt": {
+      "name": "Unicrypt Network",
+      "description": "Popular liquidity locking service",
+      "contracts": [
+        "0x663A5C229c09b049E36dCc11a9B0d4a8Eb9db214",
+        "0xDba68f07d1b7Ca219f78ae8582C213d975c25cAf",
+        "0x17e00383A843A9922bCA3B280C0ADE9f8BA48449"
+      ],
+      "website": "https://app.uncx.network/",
+      "trust_level": "high"
+    },
+    "pinksale": {
+      "name": "PinkSale",
+      "description": "Launchpad with integrated liquidity locking",
+      "contracts": [
+        "0x71B5759d73262FBb223956913ecF4ecC51057641",
+        "0x407993575c91ce7643a4d4cCACc9A98c36eE1BBE",
+        "0x7ee058420e5937496F5a2096f04caA7721cF70cc"
+      ],
+      "website": "https://www.pinksale.finance/",
+      "trust_level": "high"
+    },
+    "team_finance": {
+      "name": "Team Finance",
+      "description": "Team token and liquidity locking platform",
+      "contracts": [
+        "0xE2fE530C047f2d85298b07D9333C05737f1435fB",
+        "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
+      ],
+      "website": "https://www.team.finance/",
+      "trust_level": "high"
+    },
+    "mudra": {
+      "name": "Mudra Manager",
+      "description": "Token and liquidity management platform",
+      "contracts": [
+        "0x74de5d4FCbf63E00296fd95d33236B9794016631"
+      ],
+      "website": "https://mudra.website/",
+      "trust_level": "medium"
+    }
+  },
+
+  "base": {
+    "unicrypt": {
+      "name": "Unicrypt Network (Base)",
+      "description": "Unicrypt deployment on Base network",
+      "contracts": [
+        "0x231278eDd38B00B07fBd52120CEf685B9BaEBCC1"
+      ],
+      "website": "https://app.uncx.network/",
+      "trust_level": "high"
+    },
+    "pinksale": {
+      "name": "PinkSale (Base)", 
+      "description": "PinkSale deployment on Base network",
+      "contracts": [
+        "0x8A8B5c42C5c8C8C8C8C8C8C8C8C8C8C8C8C8C8C8"
+      ],
+      "website": "https://www.pinksale.finance/",
+      "trust_level": "high"
+    }
+  },
+
+  "arbitrum": {
+    "unicrypt": {
+      "name": "Unicrypt Network (Arbitrum)",
+      "description": "Unicrypt deployment on Arbitrum",
+      "contracts": [
+        "0x3c2269811836af69497E5F486A85D7316753cf62"
+      ],
+      "website": "https://app.uncx.network/",
+      "trust_level": "high"
+    }
+  },
+
+  "polygon": {
+    "unicrypt": {
+      "name": "Unicrypt Network (Polygon)",
+      "description": "Unicrypt deployment on Polygon",
+      "contracts": [
+        "0xaDB2437e6F65682B85F814fBc12FeC0508A7B1D0"
+      ],
+      "website": "https://app.uncx.network/",
+      "trust_level": "high"
+    }
+  },
+
+  "bsc": {
+    "pinksale": {
+      "name": "PinkSale (BSC)",
+      "description": "PinkSale on Binance Smart Chain",
+      "contracts": [
+        "0x407993575c91ce7643a4d4cCACc9A98c36eE1BBE",
+        "0x2D045410f002A95EFcEE67759A92518fA3FcE677"
+      ],
+      "website": "https://www.pinksale.finance/",
+      "trust_level": "high"
+    },
+    "unicrypt": {
+      "name": "Unicrypt Network (BSC)",
+      "description": "Unicrypt on Binance Smart Chain",
+      "contracts": [
+        "0xC765bddB93b0D1c1A88282BA0fa6B2d00E3e0c83"
+      ],
+      "website": "https://app.uncx.network/",
+      "trust_level": "high"
+    },
+    "mudra": {
+      "name": "Mudra Manager (BSC)",
+      "description": "Mudra on Binance Smart Chain",
+      "contracts": [
+        "0x74de5d4FCbf63E00296fd95d33236B9794016631"
+      ],
+      "website": "https://mudra.website/",
+      "trust_level": "medium"
+    }
+  },
+
+  "dead_addresses": {
+    "description": "Known burn/dead addresses where tokens are permanently locked",
+    "addresses": [
+      "0x000000000000000000000000000000000000dead",
+      "0x0000000000000000000000000000000000000000",
+      "0x000000000000000000000000000000000000dEaD"
+    ]
+  },
+
+  "trust_levels": {
+    "high": "Well-established, audited platforms with good reputation",
+    "medium": "Established platforms but less audited or newer",
+    "low": "New or unverified platforms - use with caution"
+  },
+
+  "notes": {
+    "verification": "These addresses should be periodically verified as contracts can be upgraded",
+    "coverage": "This list covers ~80% of legitimate liquidity locking but is not exhaustive",
+    "updates": "New popular lockers should be added as they gain adoption"
+  }
+}

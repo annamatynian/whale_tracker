@@ -1,0 +1,229 @@
+# =============================================================================
+# CRYPTO MULTI-AGENT SYSTEM - GIT IGNORE
+# =============================================================================
+
+# Environment variables (CRITICAL - never commit secrets!)
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.ENV/
+.env/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Data files (potentially sensitive)
+data/raw/*.csv
+data/raw/*.json
+data/raw/*.pkl
+data/processed/*.csv
+data/processed/*.json
+data/processed/*.pkl
+
+# Database files
+*.db
+*.sqlite3
+data/database/*.db
+data/database/*.sqlite3
+
+# Model files (large files)
+data/models/*.pkl
+data/models/*.joblib
+data/models/*.h5
+data/models/*.pt
+data/models/*.pth
+
+# Vector stores (can be large)
+data/vector_stores/chroma/
+data/vector_stores/*.index
+
+# Logs
+data/logs/*.log
+data/logs/*.out
+logs/
+*.log
+
+# API Keys and secrets
+config/secrets.json
+config/api_keys.json
+**/secrets/
+**/api_keys/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.coverage
+.pytest_cache/
+.tox/
+htmlcov/
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# Documentation builds
+docs/_build/
+site/
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Monitoring data
+monitoring/prometheus/data/
+monitoring/grafana/data/
+
+# Backup files
+*.bak
+*.backup
+
+# Local configuration overrides
+config/local_settings.py
+config/development_settings.py
+
+# Downloaded data
+data/downloads/
+data/external/
+
+# Cache directories
+.cache/
+cache/
+__cache__/
+
+# System files
+.fuse_hidden*
+.nfs*
+
+# Security scan results
+.bandit
+.safety
+
+# MyPy cache
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Profiling data
+.prof
+
+# Large language model files
+*.bin
+*.safetensors
+models/
+transformers_cache/
+
+# Deployment secrets
+deployment/secrets/
+deployment/keys/
+kubernetes/secrets.yaml
+docker/secrets/
+
+# =============================================================================
+# PROJECT SPECIFIC IGNORES
+# =============================================================================
+
+# Token addresses and wallet lists (potentially sensitive)
+data/token_lists/
+data/wallet_lists/
+data/blacklists/
+
+# Historical price data (can be regenerated)
+data/price_history/
+data/market_data/
+
+# Social media data (privacy concerns)
+data/social_data/
+data/twitter_data/
+data/telegram_data/
+
+# ML training data (can be large)
+data/training/
+data/features/
+
+# Backup configurations
+config/*.backup
+config/*.bak
+
+# Local test data
+data/test/
+data/mock/
+
+# Performance profiling
+*.prof
+*.profile
+
+# Temporary analysis results
+results/
+analysis_results/
+reports/temp/
+
+# =============================================================================
+# ALLOW CERTAIN FILES (use ! to whitelist)
+# =============================================================================
+
+# Keep example configurations
+!.env.example
+!config/settings.example.py
+
+# Keep empty directories with .gitkeep
+!.gitkeep
+!**/.gitkeep
+
+# Keep Docker templates
+!deployment/docker/Dockerfile.template
+!deployment/docker/docker-compose.template.yml
+
+# Keep configuration templates
+!config/templates/

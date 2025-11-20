@@ -1,0 +1,34 @@
+[tool.pytest.ini_options]
+# Pytest configuration for Crypto Multi-Agent System
+
+# Test discovery
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Output formatting
+addopts = [
+    "-v",                           # Verbose output
+    "--tb=short",                   # Shorter traceback format
+    "--color=yes",                  # Colored output
+    "--strict-markers",             # Treat unknown markers as errors
+    "--disable-warnings",           # Disable warnings for cleaner output
+]
+
+# Custom markers
+markers = [
+    "unit: Unit tests (fast, no external dependencies)",
+    "integration: Integration tests (require network/external services)", 
+    "slow: Slow tests (may take >30 seconds)",
+    "smoke: Quick smoke tests for basic functionality",
+]
+
+# Minimum Python version
+minversion = "6.0"
+
+# Test timeout (prevent hanging tests)
+timeout = 300  # 5 minutes max per test
+
+# Coverage settings (if pytest-cov is installed)
+# addopts = ["--cov=agents", "--cov-report=html", "--cov-report=term"]
