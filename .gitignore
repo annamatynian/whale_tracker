@@ -1,0 +1,148 @@
+# =============================================================================
+# WHALE TRACKER - GIT IGNORE
+# =============================================================================
+
+# Environment variables (CRITICAL - never commit secrets!)
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.ENV/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Database files
+*.db
+*.sqlite3
+data/database/*.db
+data/database/*.sqlite3
+
+# Logs
+logs/
+*.log
+data/logs/*.log
+
+# API Keys and secrets (CRITICAL)
+config/secrets.json
+config/api_keys.json
+**/secrets/
+**/api_keys/
+whale_addresses_private.json
+known_addresses_private.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.coverage
+.pytest_cache/
+.tox/
+htmlcov/
+.coverage.*
+coverage.xml
+*.cover
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Backup files
+*.bak
+*.backup
+
+# Cache directories
+.cache/
+cache/
+__cache__/
+
+# MyPy cache
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# =============================================================================
+# WHALE TRACKER SPECIFIC IGNORES
+# =============================================================================
+
+# Historical transaction data
+data/transactions/
+data/whale_history/
+data/price_impact/
+
+# Pattern database (may contain sensitive insights)
+data/whale_patterns_private.json
+
+# Alert history
+data/alerts/
+data/notifications/
+
+# CSV exports with addresses
+*.csv
+!data/examples/*.csv
+
+# Performance profiling
+*.prof
+*.profile
+
+# =============================================================================
+# ALLOW CERTAIN FILES (use ! to whitelist)
+# =============================================================================
+
+# Keep example configurations
+!.env.example
+!config/whale_config.example.py
+!data/known_addresses.example.json
+
+# Keep empty directories with .gitkeep
+!.gitkeep
+!**/.gitkeep
