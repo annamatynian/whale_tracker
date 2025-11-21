@@ -263,10 +263,11 @@ class ConsensusEngine:
         reasoning_lines = []
         confidence = 50.0  # Default
 
+        import re
         for line in lines[1:]:
-            if 'confidence' in line.lower():
+            # Check if this is confidence line (starts with "Confidence:")
+            if line.lower().startswith('confidence:'):
                 # Extract confidence percentage
-                import re
                 matches = re.findall(r'(\d+(?:\.\d+)?)%', line)
                 if matches:
                     try:
@@ -275,6 +276,7 @@ class ConsensusEngine:
                     except ValueError:
                         pass
             else:
+                # This is reasoning
                 reasoning_lines.append(line)
 
         reasoning = " ".join(reasoning_lines) if reasoning_lines else "No reasoning provided"

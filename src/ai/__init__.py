@@ -53,11 +53,14 @@ from .consensus_engine import (
     ConsensusStrategy
 )
 
-from .providers import (
-    DeepSeekProvider,
-    GeminiProvider,
-    GroqProvider
-)
+from .providers import DeepSeekProvider, GroqProvider
+
+# Gemini is optional
+try:
+    from .providers import GeminiProvider, GEMINI_AVAILABLE
+except ImportError:
+    GeminiProvider = None
+    GEMINI_AVAILABLE = False
 
 __all__ = [
     # Main analyzer
@@ -73,6 +76,8 @@ __all__ = [
 
     # Providers
     "DeepSeekProvider",
-    "GeminiProvider",
     "GroqProvider",
 ]
+
+if GEMINI_AVAILABLE:
+    __all__.append("GeminiProvider")
