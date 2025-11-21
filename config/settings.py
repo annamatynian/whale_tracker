@@ -116,12 +116,26 @@ class Phase3Features(BaseModel):
 
 
 class Phase4Features(BaseModel):
-    """Phase 4: AI Analysis."""
-    enabled: bool = False
-    ai_analysis: bool = False  # Claude/DeepSeek analysis
-    market_context: bool = False  # Include RSI, MACD, volume
-    voice_alerts: bool = False  # OpenAI TTS for critical alerts
-    ai_model: str = "claude-sonnet-4"  # AI model to use
+    """Phase 4: AI Analysis (NOW IMPLEMENTED)."""
+    enabled: bool = False  # AI analysis disabled by default
+
+    # LLM Provider Configuration
+    primary_provider: str = "deepseek"  # Primary LLM for analysis
+    validator_provider: str = "groq"  # Validator LLM (groq or gemini)
+    enable_validator: bool = True  # Use consensus validation
+
+    # Analysis Settings
+    min_confidence_for_action: float = 60.0  # Minimum confidence % for BUY/SELL
+    consensus_strategy: str = "weighted"  # unanimous, majority, weighted, validator_override
+
+    # API Keys (from environment)
+    deepseek_key: str = ""
+    groq_key: str = ""
+    gemini_key: str = ""
+
+    # Performance
+    analysis_timeout_seconds: int = 30
+    max_retries: int = 2
 
 
 class PhasesConfig(BaseModel):

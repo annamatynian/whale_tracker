@@ -574,7 +574,7 @@ Last Updated: 2024
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from web3 import Web3
 
 from ..core.web3_manager import Web3Manager
@@ -614,7 +614,9 @@ class SimpleWhaleWatcher:
         # Advanced one-hop analyzers (optional)
         nonce_tracker: Optional[NonceTracker] = None,
         gas_correlator: Optional[GasCorrelator] = None,
-        address_profiler: Optional[AddressProfiler] = None
+        address_profiler: Optional[AddressProfiler] = None,
+        # AI analyzer (optional - Phase 4)
+        ai_analyzer: Optional[Any] = None
     ):
         """
         Initialize Simple Whale Watcher.
@@ -628,6 +630,7 @@ class SimpleWhaleWatcher:
             nonce_tracker: Nonce sequence tracker for advanced one-hop (optional)
             gas_correlator: Gas price correlator for advanced one-hop (optional)
             address_profiler: Address profiler for advanced one-hop (optional)
+            ai_analyzer: AI-powered whale analyzer (optional - Phase 4)
         """
         self.web3_manager = web3_manager or Web3Manager()
         self.whale_config = whale_config or WhaleConfig()
@@ -639,6 +642,13 @@ class SimpleWhaleWatcher:
         self.nonce_tracker = nonce_tracker
         self.gas_correlator = gas_correlator
         self.address_profiler = address_profiler
+
+        # AI analyzer (Phase 4 - optional)
+        self.ai_analyzer = ai_analyzer
+        self.ai_enabled = (
+            ai_analyzer is not None and
+            self.settings.phases.phase4_ai.enabled
+        )
 
         # Track last known balances
         self.last_balances: Dict[str, float] = {}
@@ -657,6 +667,11 @@ class SimpleWhaleWatcher:
             logger.info("SimpleWhaleWatcher initialized with ADVANCED one-hop detection")
         else:
             logger.info("SimpleWhaleWatcher initialized with simple one-hop detection")
+
+        if self.ai_enabled:
+            logger.info("SimpleWhaleWatcher: AI analysis ENABLED")
+        else:
+            logger.info("SimpleWhaleWatcher: AI analysis DISABLED")
 
     async def check_whale(self, whale_address: str) -> Dict:
         """
@@ -1080,6 +1095,45 @@ class SimpleWhaleWatcher:
 
             exchange_info = self.whale_config.get_metadata(int_destination)
 
+            # AI Analysis (Phase 4) - if enabled
+            ai_result = None
+            if self.ai_enabled and self.ai_analyzer:
+                try:
+                    logger.info("Running AI analysis on one-hop detection...")
+                    from ...ai import WhaleTransactionContext
+
+                    # Prepare context for AI
+                    ai_context = WhaleTransactionContext(
+                        whale_address=whale_address,
+                        transaction_hash=whale_tx.get('hash', ''),
+                        amount_eth=amount_eth,
+                        amount_usd=amount_usd,
+                        destination_type="exchange",
+                        destination_name=exchange_info.name if exchange_info else None,
+                        is_one_hop=True,
+                        intermediate_address=intermediate,
+                        confidence_score=average_confidence,
+                        signal_breakdown=signals,
+                        # TODO: Add market data when available
+                        # current_eth_price=...,
+                        # price_change_24h=...,
+                        whale_avg_transaction=self.analyzer.get_whale_stats(whale_address).avg_amount_usd if self.analyzer.get_whale_stats(whale_address) else None,
+                        is_anomaly=True,  # One-hop with high confidence is always anomalous
+                        anomaly_confidence=average_confidence
+                    )
+
+                    # Get AI analysis
+                    ai_result = await self.ai_analyzer.analyze_transaction(ai_context)
+                    logger.info(
+                        f"AI Analysis: {ai_result.action} "
+                        f"(Confidence: {ai_result.confidence:.1f}%, "
+                        f"Agreement: {ai_result.agreement})"
+                    )
+
+                except Exception as e:
+                    logger.error(f"AI analysis failed: {str(e)}")
+                    # Continue without AI - don't fail the alert
+
             # Create alert with detailed signal analysis
             alert = {
                 'type': 'advanced_one_hop_dump',
@@ -1112,7 +1166,11 @@ class SimpleWhaleWatcher:
                         k: f"{v.get('type', '')} ({v.get('confidence', 0)}%)"
                         for k, v in signals.items()
                         if v.get('confidence', 0) > 0
-                    }
+                    },
+                    # AI analysis (Phase 4) - if available
+                    'ai_action': ai_result.action if ai_result else None,
+                    'ai_confidence': ai_result.confidence if ai_result else None,
+                    'ai_reasoning': ai_result.reasoning if ai_result else None
                 }
             )
 
