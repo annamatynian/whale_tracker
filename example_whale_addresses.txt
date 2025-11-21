@@ -1,0 +1,21 @@
+# Примеры адресов китов для тестирования Whale Finder
+# =====================================================
+#
+# Формат: один адрес на строку
+# Строки начинающиеся с # - комментарии
+#
+# Источники адресов:
+# - Etherscan Top Accounts: https://etherscan.io/accounts
+# - Whale Alert: https://twitter.com/whale_alert
+# - Arkham Intelligence: https://platform.arkhamintelligence.com/
+
+# Известные киты (для примера)
+0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045  # Vitalik Buterin
+0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B  # Tornado Cash Deployer
+0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0  # Whale example 1
+0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8  # Whale example 2
+
+# ВАЖНО: Замените эти примеры на реальные адреса из:
+# 1. Etherscan Token Holders
+# 2. Dune Analytics дашборды
+# 3. Whale Alert уведомления
