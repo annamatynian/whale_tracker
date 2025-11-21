@@ -580,6 +580,9 @@ from web3 import Web3
 from ..core.web3_manager import Web3Manager
 from ..core.whale_config import WhaleConfig, classify_address
 from ..analyzers.whale_analyzer import WhaleAnalyzer
+from ..analyzers.nonce_tracker import NonceTracker
+from ..analyzers.gas_correlator import GasCorrelator
+from ..analyzers.address_profiler import AddressProfiler
 from ..notifications.telegram_notifier import TelegramNotifier
 from config.settings import Settings
 
@@ -607,7 +610,11 @@ class SimpleWhaleWatcher:
         whale_config: Optional[WhaleConfig] = None,
         analyzer: Optional[WhaleAnalyzer] = None,
         notifier: Optional[TelegramNotifier] = None,
-        settings: Optional[Settings] = None
+        settings: Optional[Settings] = None,
+        # Advanced one-hop analyzers (optional)
+        nonce_tracker: Optional[NonceTracker] = None,
+        gas_correlator: Optional[GasCorrelator] = None,
+        address_profiler: Optional[AddressProfiler] = None
     ):
         """
         Initialize Simple Whale Watcher.
@@ -618,6 +625,9 @@ class SimpleWhaleWatcher:
             analyzer: Statistical analyzer (optional)
             notifier: Telegram notification manager (optional)
             settings: Configuration settings (optional)
+            nonce_tracker: Nonce sequence tracker for advanced one-hop (optional)
+            gas_correlator: Gas price correlator for advanced one-hop (optional)
+            address_profiler: Address profiler for advanced one-hop (optional)
         """
         self.web3_manager = web3_manager or Web3Manager()
         self.whale_config = whale_config or WhaleConfig()
@@ -625,13 +635,28 @@ class SimpleWhaleWatcher:
         self.notifier = notifier or TelegramNotifier()
         self.settings = settings or Settings()
 
+        # Advanced one-hop analyzers (optional - if None, uses simple one-hop)
+        self.nonce_tracker = nonce_tracker
+        self.gas_correlator = gas_correlator
+        self.address_profiler = address_profiler
+
         # Track last known balances
         self.last_balances: Dict[str, float] = {}
 
         # Track last alert times (for cooldown)
         self.last_alerts: Dict[str, datetime] = {}
 
-        logger.info("SimpleWhaleWatcher initialized")
+        # Determine if advanced one-hop is available
+        self.has_advanced_onehop = all([
+            self.nonce_tracker is not None,
+            self.gas_correlator is not None,
+            self.address_profiler is not None
+        ])
+
+        if self.has_advanced_onehop:
+            logger.info("SimpleWhaleWatcher initialized with ADVANCED one-hop detection")
+        else:
+            logger.info("SimpleWhaleWatcher initialized with simple one-hop detection")
 
     async def check_whale(self, whale_address: str) -> Dict:
         """
@@ -689,8 +714,11 @@ class SimpleWhaleWatcher:
                     alerts.append(direct_dump)
 
                 # Check one-hop (whale -> unknown -> exchange)
-                # TODO PHASE 2: Replace with sophisticated one-hop from file header
-                one_hop = await self._check_simple_one_hop(whale_address, tx)
+                # Use advanced one-hop if analyzers available, otherwise simple
+                if self.has_advanced_onehop:
+                    one_hop = await self._check_advanced_one_hop(whale_address, tx)
+                else:
+                    one_hop = await self._check_simple_one_hop(whale_address, tx)
                 if one_hop:
                     alerts.append(one_hop)
 
@@ -905,6 +933,200 @@ class SimpleWhaleWatcher:
                 self.analyzer.add_transaction(whale_address, amount_usd)
 
                 return alert
+
+        return None
+
+    async def _check_advanced_one_hop(
+        self,
+        whale_address: str,
+        whale_tx: Dict
+    ) -> Optional[Dict]:
+        """
+        ADVANCED one-hop detection using multiple signals (Phase 2).
+
+        Uses three sophisticated analyzers:
+        1. NonceTracker - Sequential nonce detection (STRONGEST, +95 confidence)
+        2. GasCorrelator - Gas price matching (+80-95 confidence)
+        3. AddressProfiler - Intermediate address profiling (+70-95 confidence)
+
+        Composite confidence scoring combines all signals for highly accurate detection.
+
+        Args:
+            whale_address: The whale's address
+            whale_tx: Transaction from whale
+
+        Returns:
+            Alert dict with confidence score if one-hop detected, None otherwise
+        """
+        intermediate = whale_tx.get('to', '').lower()
+
+        # Skip if destination is known (exchange, DeFi, etc.)
+        destination_class = classify_address(intermediate)
+        if destination_class['is_known']:
+            return None
+
+        logger.info(f"Advanced one-hop check for intermediate: {intermediate}")
+
+        # Get transactions from intermediate address
+        intermediate_txs = await self._get_recent_transactions(intermediate, limit=20)
+
+        whale_tx_time = whale_tx.get('timestamp', datetime.now())
+        whale_tx_block = whale_tx.get('blockNumber', 0)
+        time_window_hours = self.settings.whale_monitoring.intervals.onehop_check_hours
+
+        # Check each intermediate transaction
+        for int_tx in intermediate_txs:
+            int_destination = int_tx.get('to', '').lower()
+            int_tx_time = int_tx.get('timestamp', datetime.now())
+
+            # Check if sent to exchange
+            if not self.whale_config.is_exchange(int_destination):
+                continue
+
+            # Check time window
+            time_diff = (int_tx_time - whale_tx_time).total_seconds() / 3600
+
+            if not (0 < time_diff < time_window_hours):
+                continue
+
+            # ADVANCED SIGNAL ANALYSIS
+            signals = {}
+            total_confidence = 0
+
+            # Signal #1: Time Correlation (basic, already checked above)
+            time_diff_minutes = time_diff * 60
+            if 5 < time_diff_minutes < 30:
+                # Golden window: human reaction time
+                time_confidence = 50
+            elif time_diff_minutes < 60:
+                time_confidence = 30
+            else:
+                time_confidence = 10
+
+            signals['time'] = {
+                'confidence': time_confidence,
+                'details': f'{time_diff_minutes:.1f} minutes delay'
+            }
+            total_confidence += time_confidence
+
+            # Signal #2: Gas Price Correlation
+            if self.gas_correlator:
+                gas_result = self.gas_correlator.check_gas_correlation(whale_tx, int_tx)
+                signals['gas'] = {
+                    'match': gas_result.match,
+                    'confidence': gas_result.confidence,
+                    'type': gas_result.correlation_type,
+                    'details': gas_result.details
+                }
+                total_confidence += gas_result.confidence
+                logger.info(f"Gas correlation: {gas_result.correlation_type} ({gas_result.confidence}%)")
+
+            # Signal #3: Nonce Tracking (STRONGEST)
+            if self.nonce_tracker:
+                nonce_result = await self.nonce_tracker.check_nonce_sequence(whale_tx, int_tx)
+                signals['nonce'] = {
+                    'match': nonce_result.match,
+                    'confidence': nonce_result.confidence,
+                    'gap': nonce_result.nonce_gap,
+                    'strength': nonce_result.signal_strength,
+                    'details': nonce_result.details
+                }
+                total_confidence += nonce_result.confidence
+                if nonce_result.match:
+                    logger.warning(f"Nonce correlation: {nonce_result.signal_strength} (gap={nonce_result.nonce_gap}, {nonce_result.confidence}%)")
+
+            # Signal #4: Address Profiling
+            if self.address_profiler:
+                profile = await self.address_profiler.profile_address(
+                    intermediate,
+                    whale_tx_block,
+                    whale_tx_time
+                )
+                signals['profile'] = {
+                    'type': profile.profile_type,
+                    'confidence': profile.overall_confidence,
+                    'is_fresh': profile.is_fresh,
+                    'is_burner': profile.is_single_use,
+                    'is_reused': profile.is_reused,
+                    'details': profile.details
+                }
+                total_confidence += profile.overall_confidence
+                logger.info(f"Address profile: {profile.profile_type} ({profile.overall_confidence}%)")
+
+            # Normalize confidence (average of signals)
+            num_signals = len([s for s in signals.values() if s.get('confidence', 0) > 0])
+            if num_signals > 0:
+                average_confidence = int(total_confidence / max(num_signals, 1))
+            else:
+                average_confidence = 0
+
+            # High confidence threshold for alerting
+            MIN_CONFIDENCE = 60  # Требуем минимум 60% уверенности
+
+            if average_confidence < MIN_CONFIDENCE:
+                logger.info(f"Confidence too low: {average_confidence}% < {MIN_CONFIDENCE}%")
+                continue
+
+            # Calculate amounts
+            amount_eth = float(whale_tx.get('value', 0)) / 1e18
+            amount_usd = amount_eth * 3500  # TODO PHASE 2: Real price
+
+            if amount_usd < self.settings.MIN_AMOUNT_USD:
+                continue
+
+            # Check cooldown
+            if not self._can_send_alert(whale_address):
+                continue
+
+            exchange_info = self.whale_config.get_metadata(int_destination)
+
+            # Create alert with detailed signal analysis
+            alert = {
+                'type': 'advanced_one_hop_dump',
+                'whale_address': whale_address,
+                'intermediate_address': intermediate,
+                'exchange': exchange_info.name if exchange_info else int_destination,
+                'amount_eth': amount_eth,
+                'amount_usd': amount_usd,
+                'whale_tx_hash': whale_tx.get('hash', ''),
+                'exchange_tx_hash': int_tx.get('hash', ''),
+                'time_delay_minutes': time_diff_minutes,
+                'confidence': average_confidence,
+                'signals': signals,
+                'timestamp': datetime.now()
+            }
+
+            # Send enhanced notification with confidence score
+            await self.notifier.send_whale_onehop_alert(
+                whale_address=whale_address,
+                whale_tx={
+                    'value_usd': amount_usd,
+                    'hash': whale_tx.get('hash', '')
+                },
+                intermediate_address=intermediate,
+                onehop_result={
+                    'exchange_name': exchange_info.name if exchange_info else 'Unknown',
+                    'time_delay_minutes': time_diff_minutes,
+                    'confidence': average_confidence,
+                    'signals': {
+                        k: f"{v.get('type', '')} ({v.get('confidence', 0)}%)"
+                        for k, v in signals.items()
+                        if v.get('confidence', 0) > 0
+                    }
+                }
+            )
+
+            self.last_alerts[whale_address] = datetime.now()
+            self.analyzer.add_transaction(whale_address, amount_usd)
+
+            logger.warning(
+                f"ADVANCED ONE-HOP DETECTED! "
+                f"Confidence: {average_confidence}% "
+                f"Signals: {num_signals} "
+                f"Amount: ${amount_usd:,.0f}"
+            )
+
+            return alert
 
         return None
 

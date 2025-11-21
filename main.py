@@ -28,6 +28,9 @@ from config.settings import Settings
 from src.core.web3_manager import Web3Manager
 from src.core.whale_config import WhaleConfig
 from src.analyzers.whale_analyzer import WhaleAnalyzer
+from src.analyzers.nonce_tracker import NonceTracker
+from src.analyzers.gas_correlator import GasCorrelator
+from src.analyzers.address_profiler import AddressProfiler
 from src.notifications.telegram_notifier import TelegramNotifier
 from src.monitors.simple_whale_watcher import SimpleWhaleWatcher
 
@@ -108,6 +111,12 @@ class WhaleTrackerOrchestrator:
         self.whale_config: Optional[WhaleConfig] = None
         self.analyzer: Optional[WhaleAnalyzer] = None
         self.notifier: Optional[TelegramNotifier] = None
+
+        # Advanced one-hop analyzers
+        self.nonce_tracker: Optional[NonceTracker] = None
+        self.gas_correlator: Optional[GasCorrelator] = None
+        self.address_profiler: Optional[AddressProfiler] = None
+
         self.watcher: Optional[SimpleWhaleWatcher] = None
 
         # Scheduler
@@ -157,16 +166,45 @@ class WhaleTrackerOrchestrator:
             self.notifier = TelegramNotifier()
             self.logger.info("TelegramNotifier initialized")
 
-            # Initialize SimpleWhaleWatcher
-            self.logger.info("Initializing SimpleWhaleWatcher...")
+            # Initialize Advanced One-Hop Analyzers
+            self.logger.info("Initializing advanced one-hop analyzers...")
+
+            # Get Etherscan API key from environment (optional)
+            import os
+            etherscan_api_key = os.getenv('ETHERSCAN_API_KEY')
+
+            # NonceTracker (Signal #3 - STRONGEST)
+            self.nonce_tracker = NonceTracker(
+                web3_manager=self.web3_manager,
+                etherscan_api_key=etherscan_api_key,
+                use_etherscan=etherscan_api_key is not None
+            )
+            self.logger.info(f"NonceTracker initialized (Etherscan: {etherscan_api_key is not None})")
+
+            # GasCorrelator (Signal #2)
+            self.gas_correlator = GasCorrelator()
+            self.logger.info("GasCorrelator initialized")
+
+            # AddressProfiler (Signal #5)
+            self.address_profiler = AddressProfiler(
+                web3_manager=self.web3_manager
+            )
+            self.logger.info("AddressProfiler initialized")
+
+            # Initialize SimpleWhaleWatcher with ADVANCED one-hop detection
+            self.logger.info("Initializing SimpleWhaleWatcher with ADVANCED one-hop...")
             self.watcher = SimpleWhaleWatcher(
                 web3_manager=self.web3_manager,
                 whale_config=self.whale_config,
                 analyzer=self.analyzer,
                 notifier=self.notifier,
-                settings=self.settings
+                settings=self.settings,
+                # Advanced one-hop analyzers
+                nonce_tracker=self.nonce_tracker,
+                gas_correlator=self.gas_correlator,
+                address_profiler=self.address_profiler
             )
-            self.logger.info("SimpleWhaleWatcher initialized")
+            self.logger.info("SimpleWhaleWatcher initialized with ADVANCED one-hop detection")
 
             # Log configuration
             whale_count = len(self.settings.WHALE_ADDRESSES)
