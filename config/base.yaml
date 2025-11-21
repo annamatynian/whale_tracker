@@ -1,0 +1,104 @@
+# Whale Tracker - Base Configuration
+# ====================================
+# This file contains common settings for all environments.
+# Override specific values in environments/{env}.yaml
+
+blockchain:
+  providers:
+    infura:
+      api_key: "${INFURA_API_KEY}"
+      priority: 1
+      networks: ["ethereum_mainnet", "ethereum_sepolia", "polygon", "arbitrum"]
+    alchemy:
+      api_key: "${ALCHEMY_API_KEY}"
+      priority: 2
+      networks: ["ethereum_mainnet", "ethereum_sepolia", "polygon", "arbitrum"]
+    ankr:
+      api_key: "${ANKR_API_KEY}"
+      priority: 3
+      public_endpoints: true
+      networks: ["ethereum_mainnet", "ethereum_sepolia", "polygon", "arbitrum"]
+  default_network: "ethereum_mainnet"
+
+notifications:
+  telegram:
+    bot_token: "${TELEGRAM_BOT_TOKEN}"
+    chat_id: "${TELEGRAM_CHAT_ID}"
+    enabled: true
+    timeout: 30
+
+apis:
+  coingecko:
+    api_key: "${COINGECKO_API_KEY}"
+    base_url: "https://api.coingecko.com/api/v3"
+    rate_limit: 50
+  etherscan:
+    api_key: "${ETHERSCAN_API_KEY}"
+    base_url: "https://api.etherscan.io/api"
+    rate_limit: 5
+
+whale_monitoring:
+  whale_addresses: []  # Override in environment-specific config
+  onehop_enabled: true
+  intervals:
+    check_minutes: 15
+    alert_cooldown_minutes: 60
+    price_update_seconds: 300
+    onehop_check_hours: 2
+  thresholds:
+    min_amount_usd: 100000.0  # $100k minimum
+    anomaly_multiplier: 1.3  # 1.3x above average
+    onehop_confidence_threshold: 0.7  # 70% confidence
+
+logging:
+  level: "INFO"
+  file_logging: true
+  log_rotation: true
+  max_file_size_mb: 10
+  backup_count: 5
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+# Development Phases Configuration
+phases:
+  # MVP / Phase 1
+  mvp:
+    enabled: true
+    simple_monitoring: true
+    onehop_tracking: true
+    anomaly_detection: true
+
+  # Phase 2: Price Impact Tracking
+  phase2_price_impact:
+    enabled: false
+    price_impact_tracking: false
+    historical_data_storage: false
+    impact_checkpoints: [1, 6, 24]  # Hours after transaction
+
+  # Phase 3: Pattern Analysis
+  phase3_patterns:
+    enabled: false
+    pattern_database: false
+    whale_profiling: false
+    pattern_matching: false
+
+  # Phase 4: AI Analysis
+  phase4_ai:
+    enabled: false
+    ai_analysis: false
+    market_context: false
+    voice_alerts: false
+    ai_model: "claude-sonnet-4"
+
+performance:
+  max_concurrent_requests: 10
+  request_timeout_seconds: 30
+  cache_ttl_seconds: 300
+  retry_attempts: 3
+  retry_delay_seconds: 1
+
+development:
+  mock_data: false
+  test_mode: false
+  debug_api_calls: false
+  test_network: "ethereum_sepolia"

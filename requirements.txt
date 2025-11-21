@@ -1,0 +1,39 @@
+# Whale Tracker Dependencies
+# ==========================
+
+# Web3 and blockchain
+web3>=6.0.0
+eth-account>=0.8.0
+
+# Async HTTP
+aiohttp>=3.8.0
+aiofiles>=23.0.0
+
+# Configuration
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+PyYAML>=6.0
+
+# Scheduling
+APScheduler>=3.10.0
+
+# Data processing (for whale_analyzer)
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+
+# Logging
+colorlog>=6.7.0
+
+# Optional: AI Analysis (Phase 4)
+# anthropic>=0.7.0  # Uncomment for Phase 4
+# openai>=1.0.0  # Uncomment for Phase 4
+
+# Optional: Database (Phase 2)
+# sqlalchemy>=2.0.0  # Uncomment for Phase 2
+# alembic>=1.12.0  # Uncomment for Phase 2

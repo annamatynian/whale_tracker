@@ -1,0 +1,29 @@
+# Whale Tracker - Development Environment
+# =========================================
+# Settings for local development and testing
+
+blockchain:
+  default_network: "ethereum_sepolia"  # Use testnet for dev
+
+whale_monitoring:
+  whale_addresses:
+    # Example whale addresses for testing (replace with real ones)
+    - "0x00000000219ab540356cBB839Cbe05303d7705Fa"  # ETH2 Deposit Contract (for testing)
+  intervals:
+    check_minutes: 5  # Faster checks in dev (5 min instead of 15)
+    alert_cooldown_minutes: 10  # Shorter cooldown for testing
+  thresholds:
+    min_amount_usd: 10000.0  # Lower threshold for dev ($10k instead of $100k)
+
+logging:
+  level: "DEBUG"  # Verbose logging in dev
+  file_logging: true
+
+development:
+  mock_data: false  # Set to true to use mock data without API calls
+  test_mode: false
+  debug_api_calls: true  # Log all API calls in dev
+  test_network: "ethereum_sepolia"
+
+performance:
+  max_concurrent_requests: 5  # Lower for dev to avoid hitting rate limits
