@@ -149,6 +149,52 @@ class DevelopmentConfig(BaseModel):
     test_network: str = "ethereum_sepolia"
 
 
+class DatabaseConfig(BaseModel):
+    """Database configuration for PostgreSQL/SQLite."""
+    db_type: str = Field(default="sqlite", description="Database type: sqlite | postgresql")
+
+    # SQLite settings
+    sqlite_path: str = Field(default="data/database/whale_tracker.db", description="SQLite database path")
+
+    # PostgreSQL settings
+    db_host: str = Field(default="localhost", description="PostgreSQL host")
+    db_port: int = Field(default=5432, description="PostgreSQL port")
+    db_name: str = Field(default="whale_tracker", description="PostgreSQL database name")
+    db_user: str = Field(default="postgres", description="PostgreSQL user")
+    db_password: str = Field(default="", description="PostgreSQL password")
+
+    # Connection pool settings
+    db_pool_size: int = Field(default=5, ge=1, le=50, description="Connection pool size")
+    db_max_overflow: int = Field(default=10, ge=0, le=50, description="Max overflow connections")
+    db_echo: bool = Field(default=False, description="Echo SQL queries (debugging)")
+
+    @field_validator('db_type')
+    @classmethod
+    def validate_db_type(cls, v):
+        """Validate database type"""
+        allowed = ['sqlite', 'postgresql']
+        if v.lower() not in allowed:
+            raise ValueError(f'db_type must be one of: {allowed}')
+        return v.lower()
+
+    def get_connection_url(self, async_mode: bool = False) -> str:
+        """
+        Generate database connection URL.
+
+        Args:
+            async_mode: If True, return async URL (for asyncpg)
+
+        Returns:
+            Database connection URL
+        """
+        if self.db_type == 'sqlite':
+            prefix = 'sqlite+aiosqlite' if async_mode else 'sqlite'
+            return f"{prefix}:///{self.sqlite_path}"
+        else:  # postgresql
+            prefix = 'postgresql+asyncpg' if async_mode else 'postgresql'
+            return f"{prefix}://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
+
 class Settings(BaseModel):
     """
     Whale Tracker Settings - YAML + .env Configuration
@@ -166,6 +212,7 @@ class Settings(BaseModel):
     phases: PhasesConfig = Field(default_factory=PhasesConfig)
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
     development: DevelopmentConfig = Field(default_factory=DevelopmentConfig)
+    database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     known_addresses: Dict[str, Any] = Field(default_factory=dict)  # Exchange addresses
     
     # BACKWARD COMPATIBILITY: Original flat fields
@@ -184,6 +231,18 @@ class Settings(BaseModel):
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
     LOG_TO_FILE: bool = Field(default=True, description="Enable file logging")
     DEFAULT_IL_THRESHOLD: float = Field(default=0.05, description="IL threshold (legacy from LP tracker)")
+
+    # DATABASE CONFIGURATION (Phase 2 compatibility)
+    DB_TYPE: str = Field(default="sqlite", description="Database type: sqlite | postgresql")
+    DB_HOST: str = Field(default="localhost", description="PostgreSQL host")
+    DB_PORT: int = Field(default=5432, description="PostgreSQL port")
+    DB_NAME: str = Field(default="whale_tracker", description="PostgreSQL database name")
+    DB_USER: str = Field(default="postgres", description="PostgreSQL user")
+    DB_PASSWORD: str = Field(default="", description="PostgreSQL password")
+    DB_POOL_SIZE: int = Field(default=5, description="Connection pool size")
+    DB_MAX_OVERFLOW: int = Field(default=10, description="Max overflow connections")
+    DB_ECHO: bool = Field(default=False, description="Echo SQL queries (debugging)")
+    SQLITE_PATH: str = Field(default="data/database/whale_tracker.db", description="SQLite database path")
     
     def __init__(self, **data):
         """Initialize Settings with backward compatibility."""
@@ -387,6 +446,19 @@ class Settings(BaseModel):
             flat['LOG_LEVEL'] = logging_config.get('level', 'INFO')
             flat['LOG_TO_FILE'] = logging_config.get('file_logging', True)
 
+        if 'database' in yaml_data:
+            db_config = yaml_data['database']
+            flat['DB_TYPE'] = db_config.get('db_type', 'sqlite')
+            flat['DB_HOST'] = db_config.get('db_host', 'localhost')
+            flat['DB_PORT'] = db_config.get('db_port', 5432)
+            flat['DB_NAME'] = db_config.get('db_name', 'whale_tracker')
+            flat['DB_USER'] = db_config.get('db_user', 'postgres')
+            flat['DB_PASSWORD'] = db_config.get('db_password', '')
+            flat['DB_POOL_SIZE'] = db_config.get('db_pool_size', 5)
+            flat['DB_MAX_OVERFLOW'] = db_config.get('db_max_overflow', 10)
+            flat['DB_ECHO'] = db_config.get('db_echo', False)
+            flat['SQLITE_PATH'] = db_config.get('sqlite_path', 'data/database/whale_tracker.db')
+
         # Copy other sections as-is
         for key in ['performance', 'phases', 'development', 'known_addresses']:
             if key in yaml_data:
@@ -429,6 +501,19 @@ class Settings(BaseModel):
 
         self.blockchain.default_network = self.DEFAULT_NETWORK
         self.whale_monitoring.onehop_enabled = self.ONEHOP_ENABLED
+
+        # Sync database settings
+        if not self.database.db_type or self.database.db_type == 'sqlite':  # Default
+            self.database.db_type = self.DB_TYPE
+            self.database.db_host = self.DB_HOST
+            self.database.db_port = self.DB_PORT
+            self.database.db_name = self.DB_NAME
+            self.database.db_user = self.DB_USER
+            self.database.db_password = self.DB_PASSWORD
+            self.database.db_pool_size = self.DB_POOL_SIZE
+            self.database.db_max_overflow = self.DB_MAX_OVERFLOW
+            self.database.db_echo = self.DB_ECHO
+            self.database.sqlite_path = self.SQLITE_PATH
     
     @staticmethod
     def _deep_merge(base: Dict, override: Dict) -> Dict:

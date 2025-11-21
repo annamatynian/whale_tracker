@@ -34,6 +34,8 @@ colorlog>=6.7.0
 # anthropic>=0.7.0  # Uncomment for Phase 4
 # openai>=1.0.0  # Uncomment for Phase 4
 
-# Optional: Database (Phase 2)
-# sqlalchemy>=2.0.0  # Uncomment for Phase 2
-# alembic>=1.12.0  # Uncomment for Phase 2
+# Database (Phase 2) - NOW IMPLEMENTED
+sqlalchemy>=2.0.0  # ORM for database abstraction
+alembic>=1.12.0  # Database migrations
+psycopg2-binary>=2.9.0  # PostgreSQL adapter
+asyncpg>=0.29.0  # Async PostgreSQL driver
