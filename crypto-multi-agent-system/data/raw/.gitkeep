@@ -1,3 +1,0 @@
-# This file ensures the data directory structure is preserved in git
-# Raw data files (downloaded from APIs) will be stored here
-# Examples: token_lists.json, price_data.csv, social_mentions.json
