@@ -239,5 +239,7 @@ def pytest_runtest_setup(item):
     if "real_api" in markers:
         # Проверяем наличие необходимых API ключей
         import os
-        if not os.getenv('INFURA_URL'):
-            pytest.skip("Пропущен: требуется INFURA_URL в .env")
+        # Проверяем либо INFURA_URL либо INFURA_API_KEY
+        has_infura = os.getenv('INFURA_URL') or os.getenv('INFURA_API_KEY')
+        if not has_infura:
+            pytest.skip("Пропущен: требуется INFURA_URL или INFURA_API_KEY в .env")
