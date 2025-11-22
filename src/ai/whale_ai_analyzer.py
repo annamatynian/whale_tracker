@@ -318,6 +318,8 @@ class WhaleAIAnalyzer:
     def __init__(
         self,
         consensus_engine: ConsensusEngine,
+        detection_repo=None,
+        market_data_service=None,
         enable_analysis: bool = True,
         min_confidence_for_action: float = 60.0
     ):
@@ -326,17 +328,23 @@ class WhaleAIAnalyzer:
 
         Args:
             consensus_engine: Consensus engine with configured LLMs
+            detection_repo: Detection repository for whale history (optional)
+            market_data_service: Market data service for enrichment (optional)
             enable_analysis: Enable AI analysis (can disable for testing)
             min_confidence_for_action: Minimum confidence for BUY/SELL (0-100)
         """
         self.consensus_engine = consensus_engine
+        self.detection_repo = detection_repo
+        self.market_data_service = market_data_service
         self.enable_analysis = enable_analysis
         self.min_confidence_for_action = min_confidence_for_action
 
         logger.info(
             f"WhaleAIAnalyzer initialized: "
             f"enabled={enable_analysis}, "
-            f"min_confidence={min_confidence_for_action}%"
+            f"min_confidence={min_confidence_for_action}%, "
+            f"whale_history={'enabled' if detection_repo else 'disabled'}, "
+            f"market_data={'enabled' if market_data_service else 'disabled'}"
         )
 
     async def analyze_transaction(
@@ -377,6 +385,9 @@ class WhaleAIAnalyzer:
                 total_cost_usd=0.0,
                 total_latency_ms=0.0
             )
+
+        # Enrich context with whale history and market data (if available)
+        await self._enrich_context(context)
 
         # Generate prompt from context
         prompt = context.to_prompt()
@@ -437,13 +448,62 @@ class WhaleAIAnalyzer:
         if self.consensus_engine.validator_llm:
             self.consensus_engine.validator_llm.reset_stats()
 
+    async def _enrich_context(self, context: WhaleTransactionContext):
+        """
+        Enrich transaction context with whale history and market data.
+
+        This method automatically fetches additional context data if services
+        are available, maintaining loose coupling with SimpleWhaleWatcher.
+
+        Args:
+            context: Transaction context to enrich (modified in-place)
+        """
+        # Enrich with whale history (if detection_repo available)
+        if self.detection_repo and not context.whale_history:
+            try:
+                whale_history = await self.detection_repo.get_whale_statistics(
+                    whale_address=context.whale_address,
+                    days=30
+                )
+                context.whale_history = whale_history
+                logger.debug(
+                    f"Enriched context with whale history: "
+                    f"{whale_history.get('total_transactions', 0)} transactions"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to fetch whale history: {e}")
+                context.whale_history = {}  # Empty dict for cold start
+
+        # Enrich with market data (if market_data_service available)
+        if self.market_data_service and not context.market_data:
+            try:
+                market_data = self.market_data_service.get_market_data()
+                # Convert Pydantic model to dict for context
+                if hasattr(market_data, 'model_dump'):
+                    market_data_dict = market_data.model_dump()
+                elif hasattr(market_data, 'dict'):
+                    market_data_dict = market_data.dict()
+                else:
+                    market_data_dict = market_data  # Already dict
+
+                context.market_data = market_data_dict
+                logger.debug(
+                    f"Enriched context with market data: "
+                    f"ETH=${market_data_dict.get('current_eth_price', 'N/A')}"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to fetch market data: {e}")
+                context.market_data = {}  # Empty dict on error
+
 
 # Factory function for easy initialization
 async def create_whale_ai_analyzer(
     primary_provider: str = "deepseek",
     validator_provider: str = "gemini",
     enable_validator: bool = True,
-    enable_analysis: bool = True
+    enable_analysis: bool = True,
+    detection_repo=None,
+    market_data_service=None
 ) -> WhaleAIAnalyzer:
     """
     Factory function to create WhaleAIAnalyzer with configured providers.
@@ -453,6 +513,8 @@ async def create_whale_ai_analyzer(
         validator_provider: Validator LLM provider ("gemini" or "groq")
         enable_validator: Enable validator LLM
         enable_analysis: Enable AI analysis globally
+        detection_repo: Detection repository for whale history (optional)
+        market_data_service: Market data service for enrichment (optional)
 
     Returns:
         Configured WhaleAIAnalyzer instance
@@ -519,6 +581,8 @@ async def create_whale_ai_analyzer(
     # Create analyzer
     analyzer = WhaleAIAnalyzer(
         consensus_engine=consensus_engine,
+        detection_repo=detection_repo,
+        market_data_service=market_data_service,
         enable_analysis=enable_analysis,
         min_confidence_for_action=60.0
     )

@@ -31,6 +31,33 @@ def mock_settings():
     settings.whale_monitoring.thresholds = Mock()
     settings.whale_monitoring.thresholds.anomaly_multiplier = 1.3
 
+    # Mock database settings
+    settings.database = Mock()
+    settings.database.url = "sqlite:///test.db"
+    settings.database.db_host = "localhost"
+    settings.database.db_port = 5432
+    settings.database.db_name = "test_db"
+    settings.database.db_user = "test_user"
+    settings.database.db_password = "test_pass"
+    settings.database.db_pool_size = 5
+    settings.database.db_max_overflow = 10
+    settings.database.db_echo = False
+
+    # Mock phases configuration
+    settings.phases = Mock()
+    settings.phases.phase4_ai = Mock()
+    settings.phases.phase4_ai.enabled = False
+    settings.phases.phase4_ai.primary_provider = "deepseek"
+    settings.phases.phase4_ai.validator_provider = "groq"
+    settings.phases.phase4_ai.enable_validator = True
+
+    # Add get method for phase5_market_data
+    def get_phase(key, default=None):
+        if key == 'phase5_market_data':
+            return {'enabled': False, 'update_interval': 300}
+        return default
+    settings.phases.get = get_phase
+
     return settings
 
 
@@ -73,18 +100,31 @@ class TestOrchestratorInitialization:
 class TestComponentSetup:
     """Test component initialization."""
 
+    @pytest.mark.asyncio
+    @patch('src.repositories.SQLDetectionRepository')
+    @patch('models.db_connection.DatabaseManager')
+    @patch('models.db_connection.DatabaseConfig')
+    @patch('main.AddressProfiler')
+    @patch('main.GasCorrelator')
+    @patch('main.NonceTracker')
     @patch('main.TelegramNotifier')
     @patch('main.WhaleAnalyzer')
     @patch('main.WhaleConfig')
     @patch('main.Web3Manager')
     @patch('main.SimpleWhaleWatcher')
-    def test_setup_success(
+    async def test_setup_success(
         self,
         mock_watcher_class,
         mock_web3_class,
         mock_config_class,
         mock_analyzer_class,
         mock_notifier_class,
+        mock_nonce_tracker_class,
+        mock_gas_correlator_class,
+        mock_address_profiler_class,
+        mock_db_config_class,
+        mock_db_manager_class,
+        mock_detection_repo_class,
         mock_settings
     ):
         """Test successful component setup."""
@@ -97,15 +137,18 @@ class TestComponentSetup:
         mock_analyzer = Mock()
         mock_notifier = Mock()
         mock_watcher = Mock()
+        mock_detection_repo = AsyncMock()
+        mock_detection_repo.test_connection = AsyncMock()
 
         mock_web3_class.return_value = mock_web3
         mock_config_class.return_value = mock_config
         mock_analyzer_class.return_value = mock_analyzer
         mock_notifier_class.return_value = mock_notifier
         mock_watcher_class.return_value = mock_watcher
+        mock_detection_repo_class.return_value = mock_detection_repo
 
         # Run setup
-        orchestrator.setup()
+        await orchestrator.setup()
 
         # Verify components created
         assert orchestrator.web3_manager is mock_web3
@@ -121,8 +164,9 @@ class TestComponentSetup:
         mock_notifier_class.assert_called_once()
         mock_watcher_class.assert_called_once()
 
+    @pytest.mark.asyncio
     @patch('main.Web3Manager')
-    def test_setup_error_handling(self, mock_web3_class, mock_settings):
+    async def test_setup_error_handling(self, mock_web3_class, mock_settings):
         """Test error handling during setup."""
         orchestrator = WhaleTrackerOrchestrator(settings=mock_settings)
 
@@ -131,7 +175,7 @@ class TestComponentSetup:
 
         # Should raise exception
         with pytest.raises(Exception, match="Connection error"):
-            orchestrator.setup()
+            await orchestrator.setup()
 
 
 class TestMonitoringCycle:
@@ -317,9 +361,10 @@ class TestIntegration:
     @patch('main.SimpleWhaleWatcher')
     @patch('main.TelegramNotifier')
     @patch('main.WhaleAnalyzer')
+    @pytest.mark.asyncio
     @patch('main.WhaleConfig')
     @patch('main.Web3Manager')
-    def test_full_setup_flow(
+    async def test_full_setup_flow(
         self,
         mock_web3,
         mock_config,
@@ -332,7 +377,7 @@ class TestIntegration:
         orchestrator = WhaleTrackerOrchestrator(settings=mock_settings)
 
         # Setup components
-        orchestrator.setup()
+        await orchestrator.setup()
 
         # Verify all components initialized
         assert orchestrator.web3_manager is not None

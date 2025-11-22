@@ -104,6 +104,13 @@ phases:
     analysis_timeout_seconds: 30
     max_retries: 2
 
+  # Phase 5: Whale Statistics & Market Data (NOW IMPLEMENTED)
+  phase5_market_data:
+    enabled: true  # Enable market data enrichment for AI analysis
+    update_interval: 300  # Update market data every 5 minutes (300 seconds)
+    request_timeout: 30  # API request timeout in seconds
+    max_retries: 3  # Max retries for failed API requests
+
 performance:
   max_concurrent_requests: 10
   request_timeout_seconds: 30
