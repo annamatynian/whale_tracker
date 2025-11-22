@@ -82,13 +82,27 @@ phases:
     whale_profiling: false
     pattern_matching: false
 
-  # Phase 4: AI Analysis
+  # Phase 4: AI Analysis (NOW IMPLEMENTED)
   phase4_ai:
-    enabled: false
-    ai_analysis: false
-    market_context: false
-    voice_alerts: false
-    ai_model: "claude-sonnet-4"
+    enabled: false  # AI analysis disabled by default (set to true to enable)
+
+    # LLM Providers
+    primary_provider: "deepseek"  # Primary LLM for analysis
+    validator_provider: "groq"  # Validator LLM (groq or gemini)
+    enable_validator: true  # Use consensus validation
+
+    # Analysis Settings
+    min_confidence_for_action: 60.0  # Minimum confidence % for BUY/SELL
+    consensus_strategy: "weighted"  # unanimous, majority, weighted, validator_override
+
+    # API Keys (loaded from environment)
+    deepseek_key: "${DEEPSEEK_KEY}"
+    groq_key: "${GROQ_API_KEY}"
+    gemini_key: "${GOOGLE_API_KEY}"
+
+    # Performance
+    analysis_timeout_seconds: 30
+    max_retries: 2
 
 performance:
   max_concurrent_requests: 10

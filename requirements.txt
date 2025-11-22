@@ -30,9 +30,9 @@ pytest-cov>=4.0.0
 # Logging
 colorlog>=6.7.0
 
-# Optional: AI Analysis (Phase 4)
-# anthropic>=0.7.0  # Uncomment for Phase 4
-# openai>=1.0.0  # Uncomment for Phase 4
+# AI Analysis (NOW IMPLEMENTED - Phase 4)
+openai>=1.0.0  # For DeepSeek and Groq (OpenAI-compatible APIs)
+google-generativeai>=0.3.0  # For Gemini Flash (FREE validator)
 
 # Database (Phase 2) - NOW IMPLEMENTED
 sqlalchemy>=2.0.0  # ORM for database abstraction

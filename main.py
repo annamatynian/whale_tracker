@@ -191,6 +191,34 @@ class WhaleTrackerOrchestrator:
             )
             self.logger.info("AddressProfiler initialized")
 
+            # Initialize AI Analyzer (Phase 4) - if enabled
+            ai_analyzer = None
+            if self.settings.phases.phase4_ai.enabled:
+                self.logger.info("Initializing AI analyzer (Phase 4)...")
+                try:
+                    # Import AI module (lazy import to avoid dependency if disabled)
+                    from src.ai import create_whale_ai_analyzer
+
+                    # Create AI analyzer with settings
+                    import asyncio
+                    ai_analyzer = asyncio.run(create_whale_ai_analyzer(
+                        primary_provider=self.settings.phases.phase4_ai.primary_provider,
+                        validator_provider=self.settings.phases.phase4_ai.validator_provider,
+                        enable_validator=self.settings.phases.phase4_ai.enable_validator,
+                        enable_analysis=True
+                    ))
+                    self.logger.info(
+                        f"AI analyzer initialized: "
+                        f"primary={self.settings.phases.phase4_ai.primary_provider}, "
+                        f"validator={self.settings.phases.phase4_ai.validator_provider}"
+                    )
+                except Exception as e:
+                    self.logger.error(f"Failed to initialize AI analyzer: {str(e)}")
+                    self.logger.warning("Continuing without AI analysis...")
+                    ai_analyzer = None
+            else:
+                self.logger.info("AI analysis disabled (phase4_ai.enabled=false)")
+
             # Initialize SimpleWhaleWatcher with ADVANCED one-hop detection
             self.logger.info("Initializing SimpleWhaleWatcher with ADVANCED one-hop...")
             self.watcher = SimpleWhaleWatcher(
@@ -202,7 +230,9 @@ class WhaleTrackerOrchestrator:
                 # Advanced one-hop analyzers
                 nonce_tracker=self.nonce_tracker,
                 gas_correlator=self.gas_correlator,
-                address_profiler=self.address_profiler
+                address_profiler=self.address_profiler,
+                # AI analyzer (Phase 4)
+                ai_analyzer=ai_analyzer
             )
             self.logger.info("SimpleWhaleWatcher initialized with ADVANCED one-hop detection")
 
