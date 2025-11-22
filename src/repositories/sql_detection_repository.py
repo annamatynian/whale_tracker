@@ -6,8 +6,9 @@ PostgreSQL implementation of DetectionRepository using SQLAlchemy ORM.
 
 import logging
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from sqlalchemy import select, func
 from src.abstractions.detection_repository import DetectionRepository
 from models.schemas import *
 from models.database import *
@@ -255,3 +256,75 @@ class SQLDetectionRepository(DetectionRepository):
         """Get top intermediate addresses."""
         # Implementation would use intermediate_addresses table
         return []
+
+    async def get_whale_statistics(self, whale_address: str, days: int = 30) -> dict:
+        """
+        Get activity statistics for a specific whale address.
+
+        Handles cold start gracefully - returns empty dict if no data available.
+
+        Args:
+            whale_address: Ethereum address of the whale
+            days: Number of days to look back (default: 30)
+
+        Returns:
+            dict: Whale statistics or empty dict if no historical data
+        """
+        try:
+            # Calculate date threshold
+            date_threshold = datetime.utcnow() - timedelta(days=days)
+
+            async with self.db.session() as session:
+                # Build aggregation query using SQLAlchemy ORM
+                query = select(
+                    func.count(OneHopDetection.id).label('total_transactions'),
+                    func.avg(OneHopDetection.amount_eth).label('avg_amount_eth'),
+                    func.max(OneHopDetection.amount_eth).label('max_amount_eth'),
+                    func.min(OneHopDetection.amount_eth).label('min_amount_eth'),
+                    func.sum(OneHopDetection.amount_eth).label('total_volume_eth'),
+                    func.min(OneHopDetection.detected_at).label('first_seen'),
+                    func.max(OneHopDetection.detected_at).label('last_seen')
+                ).where(
+                    OneHopDetection.whale_address == whale_address,
+                    OneHopDetection.detected_at >= date_threshold
+                )
+
+                # Execute query
+                result = await session.execute(query)
+                row = result.first()
+
+                # Check if whale has any history
+                if not row or row.total_transactions == 0:
+                    self.logger.debug(
+                        f"No historical data for whale {whale_address[:10]}... (cold start)"
+                    )
+                    return {}  # Cold start - no data
+
+                # Calculate days since last activity
+                days_since_last = 0
+                if row.last_seen:
+                    days_since_last = (datetime.utcnow() - row.last_seen).days
+
+                # Return statistics
+                stats = {
+                    'total_transactions': row.total_transactions or 0,
+                    'avg_amount_eth': float(row.avg_amount_eth or 0),
+                    'max_amount_eth': float(row.max_amount_eth or 0),
+                    'min_amount_eth': float(row.min_amount_eth or 0),
+                    'total_volume_eth': float(row.total_volume_eth or 0),
+                    'first_seen': row.first_seen,
+                    'last_seen': row.last_seen,
+                    'days_since_last': days_since_last
+                }
+
+                self.logger.debug(
+                    f"Whale {whale_address[:10]}... stats: "
+                    f"{stats['total_transactions']} txns, "
+                    f"avg {stats['avg_amount_eth']:.2f} ETH"
+                )
+
+                return stats
+
+        except Exception as e:
+            self.logger.error(f"Error fetching whale statistics: {str(e)}")
+            return {}  # Graceful degradation - return empty on error

@@ -127,7 +127,7 @@ class WhaleTrackerOrchestrator:
 
         self.logger.info("WhaleTrackerOrchestrator initialized")
 
-    def setup(self) -> None:
+    async def setup(self) -> None:
         """
         Initialize all components.
 
@@ -191,6 +191,57 @@ class WhaleTrackerOrchestrator:
             )
             self.logger.info("AddressProfiler initialized")
 
+            # Initialize DetectionRepository for whale history (Phase 5)
+            self.logger.info("Initializing DetectionRepository...")
+            from models.db_connection import DatabaseConfig, DatabaseManager
+            from src.repositories import SQLDetectionRepository
+
+            # Create database config and manager
+            db_config = DatabaseConfig(
+                host=self.settings.database.db_host,
+                port=self.settings.database.db_port,
+                database=self.settings.database.db_name,
+                user=self.settings.database.db_user,
+                password=self.settings.database.db_password,
+                pool_size=self.settings.database.db_pool_size,
+                max_overflow=self.settings.database.db_max_overflow,
+                echo=self.settings.database.db_echo
+            )
+            db_manager = DatabaseManager(config=db_config)
+
+            # Create SQL repository
+            self.detection_repo = SQLDetectionRepository(db_manager=db_manager)
+            await self.detection_repo.test_connection()
+            self.logger.info("DetectionRepository initialized (SQL)")
+
+            # Initialize MarketDataService for market data (Phase 5)
+            market_data_service = None
+            if self.settings.phases.get('phase5_market_data', {}).get('enabled', True):
+                self.logger.info("Initializing MarketDataService (background)...")
+                try:
+                    from src.services import MarketDataService, MarketDataServiceConfig
+
+                    # Create service with config
+                    market_config = MarketDataServiceConfig(
+                        update_interval=self.settings.phases.get('phase5_market_data', {}).get('update_interval', 300),
+                        request_timeout=30,
+                        max_retries=3
+                    )
+                    market_data_service = MarketDataService(config=market_config)
+
+                    # Start background updates
+                    await market_data_service.start()
+                    self.logger.info("MarketDataService started (background updates every 5min)")
+
+                    # Store for cleanup
+                    self.market_data_service = market_data_service
+                except Exception as e:
+                    self.logger.error(f"Failed to initialize MarketDataService: {e}")
+                    self.logger.warning("Continuing without market data...")
+                    market_data_service = None
+            else:
+                self.logger.info("MarketDataService disabled")
+
             # Initialize AI Analyzer (Phase 4) - if enabled
             ai_analyzer = None
             if self.settings.phases.phase4_ai.enabled:
@@ -199,14 +250,15 @@ class WhaleTrackerOrchestrator:
                     # Import AI module (lazy import to avoid dependency if disabled)
                     from src.ai import create_whale_ai_analyzer
 
-                    # Create AI analyzer with settings
-                    import asyncio
-                    ai_analyzer = asyncio.run(create_whale_ai_analyzer(
+                    # Create AI analyzer with settings and services
+                    ai_analyzer = await create_whale_ai_analyzer(
                         primary_provider=self.settings.phases.phase4_ai.primary_provider,
                         validator_provider=self.settings.phases.phase4_ai.validator_provider,
                         enable_validator=self.settings.phases.phase4_ai.enable_validator,
-                        enable_analysis=True
-                    ))
+                        enable_analysis=True,
+                        detection_repo=self.detection_repo,  # For whale history
+                        market_data_service=market_data_service  # For market data
+                    )
                     self.logger.info(
                         f"AI analyzer initialized: "
                         f"primary={self.settings.phases.phase4_ai.primary_provider}, "
@@ -362,6 +414,16 @@ class WhaleTrackerOrchestrator:
             self.scheduler.shutdown(wait=True)
             self.logger.info("Scheduler stopped")
 
+        # Stop MarketDataService if running
+        if hasattr(self, 'market_data_service') and self.market_data_service:
+            self.logger.info("Stopping MarketDataService...")
+            import asyncio
+            try:
+                asyncio.run(self.market_data_service.stop())
+                self.logger.info("MarketDataService stopped")
+            except Exception as e:
+                self.logger.error(f"Error stopping MarketDataService: {e}")
+
         self.shutdown_requested = True
         self.logger.info("Orchestrator stopped")
 
@@ -393,7 +455,7 @@ async def main_async():
 
     try:
         # Initialize components
-        orchestrator.setup()
+        await orchestrator.setup()
 
         # Check if running in test mode
         if '--once' in sys.argv:
