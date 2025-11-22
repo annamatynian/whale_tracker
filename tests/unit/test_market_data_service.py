@@ -215,11 +215,24 @@ class TestMarketDataService:
         mock_json = {'price': 2500}
 
         with patch('aiohttp.ClientSession') as mock_session:
-            mock_response = AsyncMock()
+            # Create mock response
+            mock_response = MagicMock()
             mock_response.status = 200
             mock_response.json = AsyncMock(return_value=mock_json)
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
 
-            mock_session.return_value.__aenter__.return_value.get.return_value.__aenter__.return_value = mock_response
+            # Create mock session.get() that returns mock response
+            mock_get = MagicMock(return_value=mock_response)
+
+            # Create mock session
+            mock_session_instance = MagicMock()
+            mock_session_instance.get = mock_get
+            mock_session_instance.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session_instance.__aexit__ = AsyncMock(return_value=None)
+
+            # Configure ClientSession to return our mock
+            mock_session.return_value = mock_session_instance
 
             result = await service._fetch_with_retry('https://example.com/api')
 
@@ -234,24 +247,30 @@ class TestMarketDataService:
 
         call_count = 0
 
-        async def mock_get(*args, **kwargs):
+        def create_mock_response():
+            """Create mock response based on call count."""
             nonlocal call_count
             call_count += 1
 
-            mock_response = AsyncMock()
+            mock_response = MagicMock()
             if call_count == 1:
-                mock_response.status = 429  # Rate limited
+                mock_response.status = 429  # Rate limited first time
             else:
                 mock_response.status = 200
                 mock_response.json = AsyncMock(return_value={'success': True})
 
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
             return mock_response
 
         with patch('aiohttp.ClientSession') as mock_session:
-            mock_context = AsyncMock()
-            mock_context.__aenter__ = mock_get
+            # Create mock session
+            mock_session_instance = MagicMock()
+            mock_session_instance.get = MagicMock(side_effect=lambda *args, **kwargs: create_mock_response())
+            mock_session_instance.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session_instance.__aexit__ = AsyncMock(return_value=None)
 
-            mock_session.return_value.__aenter__.return_value.get.return_value = mock_context
+            mock_session.return_value = mock_session_instance
 
             result = await service._fetch_with_retry('https://example.com/api')
 

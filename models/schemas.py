@@ -161,6 +161,7 @@ class OneHopDetectionResponse(OneHopDetectionBase):
 
     # Status
     status: str
+    notes: Optional[str] = None
     alert_sent: bool
     alert_sent_at: Optional[datetime]
 

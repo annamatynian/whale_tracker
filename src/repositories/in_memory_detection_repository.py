@@ -50,6 +50,7 @@ class InMemoryDetectionRepository(DetectionRepository):
         data.update({
             'id': detection_id,
             'status': 'pending',
+            'notes': None,
             'alert_sent': False,
             'alert_sent_at': None,
             'detected_at': datetime.utcnow(),
