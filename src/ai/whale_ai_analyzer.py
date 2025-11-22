@@ -48,6 +48,8 @@ Be concise and data-driven. Focus on the most important signals."""
 class WhaleTransactionContext:
     """
     Context for whale transaction analysis.
+
+    Enhanced with structured whale_history and market_data for richer AI context.
     """
     # Transaction details
     whale_address: str
@@ -63,13 +65,39 @@ class WhaleTransactionContext:
     confidence_score: Optional[float] = None
     signal_breakdown: Optional[Dict] = None
 
-    # Market context
+    # NEW: Structured whale history from DetectionRepository
+    whale_history: Optional[Dict] = None
+    # Expected format:
+    # {
+    #     'total_transactions': int,
+    #     'avg_amount_eth': float,
+    #     'max_amount_eth': float,
+    #     'min_amount_eth': float,
+    #     'days_since_last': int,
+    #     'cold_start': bool  # True if no historical data
+    # }
+
+    # NEW: Structured market data from MarketDataService
+    market_data: Optional[Dict] = None
+    # Expected format (from MarketData Pydantic model):
+    # {
+    #     'current_eth_price': float,
+    #     'price_change_24h': float,
+    #     'price_change_7d': float,
+    #     'volatility_24h': float,
+    #     'volume_24h': float,
+    #     'sentiment': str,
+    #     'trend': str,
+    #     'fear_greed_index': int
+    # }
+
+    # DEPRECATED: Legacy market context fields (kept for backwards compatibility)
     current_eth_price: Optional[float] = None
     price_change_24h: Optional[float] = None
     volume_24h: Optional[float] = None
     volatility: Optional[float] = None
 
-    # Historical context
+    # DEPRECATED: Legacy historical context (use whale_history instead)
     whale_avg_transaction: Optional[float] = None
     transaction_frequency: Optional[float] = None
     is_anomaly: bool = False
@@ -135,15 +163,113 @@ class WhaleTransactionContext:
             if self.volatility:
                 prompt_parts.append(f"Volatility: {self.volatility:.2f}%")
 
-        # Historical context
-        if self.whale_avg_transaction:
+        # NEW: Structured Whale History (from DetectionRepository)
+        if self.whale_history:
             prompt_parts.extend([
                 f"",
-                f"=== WHALE HISTORY ===",
+                f"=== WHALE HISTORICAL BEHAVIOR ===",
+            ])
+
+            # Check for cold start
+            if self.whale_history.get('cold_start'):
+                prompt_parts.extend([
+                    f"⚠️ NEW WHALE DETECTED - Insufficient Historical Data",
+                    f"",
+                    f"IMPORTANT:",
+                    f"- This whale has no recorded history in our system",
+                    f"- DO NOT make assumptions about past behavior",
+                    f"- Focus ONLY on current transaction signals and market context",
+                    f"- Use MODERATE confidence (max 70%) due to lack of historical data",
+                ])
+            else:
+                # Normal history available
+                total_txns = self.whale_history.get('total_transactions_30d', 0)
+                avg_eth = self.whale_history.get('avg_amount_eth', 0)
+                max_eth = self.whale_history.get('max_amount_eth', 0)
+                days_since = self.whale_history.get('days_since_last', 0)
+
+                prompt_parts.extend([
+                    f"Transaction History (last 30 days):",
+                    f"  - Total transactions: {total_txns}",
+                    f"  - Average amount: {avg_eth:.2f} ETH",
+                    f"  - Max amount: {max_eth:.2f} ETH",
+                    f"  - Last seen: {days_since} days ago",
+                ])
+
+                # Compare current to average
+                if avg_eth > 0:
+                    ratio = self.amount_eth / avg_eth
+                    if ratio > 2.0:
+                        prompt_parts.append(
+                            f"  ⚠️ This transaction is {ratio:.1f}x LARGER than whale's average"
+                        )
+                    elif ratio < 0.5:
+                        prompt_parts.append(
+                            f"  ℹ️ This transaction is {1/ratio:.1f}x SMALLER than whale's average"
+                        )
+                    else:
+                        prompt_parts.append(
+                            f"  ℹ️ This is within whale's normal transaction range"
+                        )
+
+                # Activity level
+                if total_txns > 10:
+                    prompt_parts.append(f"  - Activity: HIGH (active trader)")
+                elif total_txns > 5:
+                    prompt_parts.append(f"  - Activity: MODERATE")
+                else:
+                    prompt_parts.append(f"  - Activity: LOW (infrequent trader)")
+
+        # NEW: Structured Market Data (from MarketDataService)
+        if self.market_data:
+            md = self.market_data
+            prompt_parts.extend([
+                f"",
+                f"=== MARKET CONDITIONS ===",
+                f"Current State:",
+                f"  - ETH Price: ${md.get('current_eth_price', 0):,.2f}",
+                f"  - 24h Change: {md.get('price_change_24h', 0):+.2f}%",
+                f"  - 7d Change: {md.get('price_change_7d', 0):+.2f}%",
+                f"  - Volatility: {md.get('volatility_24h', 0):.1f}%",
+                f"  - Volume 24h: ${md.get('volume_24h', 0):,.0f}",
+            ])
+
+            # Market sentiment
+            sentiment = md.get('sentiment', 'unknown')
+            fng_index = md.get('fear_greed_index', 50)
+            trend = md.get('trend', 'unknown')
+
+            prompt_parts.extend([
+                f"",
+                f"Market Psychology:",
+                f"  - Sentiment: {sentiment.upper()}",
+                f"  - Fear & Greed Index: {fng_index}/100",
+                f"  - Trend: {trend.replace('_', ' ').upper()}",
+            ])
+
+            # Context interpretation
+            if sentiment in ['extreme_fear', 'fear']:
+                prompt_parts.append(
+                    f"  ⚠️ Market in {sentiment.upper()} - whale selling may be panic or bottom fishing opportunity"
+                )
+            elif sentiment in ['extreme_greed', 'greed']:
+                prompt_parts.append(
+                    f"  ⚠️ Market in {sentiment.upper()} - whale selling may be smart profit-taking"
+                )
+
+            if md.get('volatility_24h', 0) > 10:
+                prompt_parts.append(
+                    f"  ⚠️ HIGH VOLATILITY - whale moves may be reactions to price swings"
+                )
+
+        # LEGACY: Fallback to old fields if new ones not available
+        elif self.whale_avg_transaction:
+            prompt_parts.extend([
+                f"",
+                f"=== WHALE HISTORY (Legacy) ===",
                 f"Average Transaction: ${self.whale_avg_transaction:,.2f}",
             ])
 
-            # Compare current to average
             ratio = self.amount_usd / self.whale_avg_transaction
             if ratio > 1.3:
                 prompt_parts.append(

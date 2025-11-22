@@ -6,7 +6,7 @@ In-memory implementation for testing purposes.
 
 import logging
 from typing import List, Optional, Dict
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 
 from src.abstractions.detection_repository import DetectionRepository
@@ -308,3 +308,65 @@ class InMemoryDetectionRepository(DetectionRepository):
 
         results.sort(key=lambda x: x['times_used'], reverse=True)
         return results[:limit]
+
+    async def get_whale_statistics(self, whale_address: str, days: int = 30) -> dict:
+        """
+        Get activity statistics for a specific whale address.
+
+        In-memory implementation for testing. Handles cold start gracefully.
+
+        Args:
+            whale_address: Ethereum address of the whale
+            days: Number of days to look back (default: 30)
+
+        Returns:
+            dict: Whale statistics or empty dict if no historical data
+        """
+        try:
+            # Calculate date threshold
+            date_threshold = datetime.utcnow() - timedelta(days=days)
+
+            # Filter detections for this whale within time period
+            whale_detections = [
+                d for d in self._detections.values()
+                if d['whale_address'] == whale_address
+                and d['detected_at'] >= date_threshold
+            ]
+
+            # Cold start - no data
+            if not whale_detections:
+                self.logger.debug(
+                    f"No historical data for whale {whale_address[:10]}... (cold start)"
+                )
+                return {}
+
+            # Calculate statistics
+            amounts = [float(d['whale_amount_eth']) for d in whale_detections]
+            dates = [d['detected_at'] for d in whale_detections]
+
+            first_seen = min(dates)
+            last_seen = max(dates)
+            days_since_last = (datetime.utcnow() - last_seen).days
+
+            stats = {
+                'total_transactions': len(whale_detections),
+                'avg_amount_eth': sum(amounts) / len(amounts),
+                'max_amount_eth': max(amounts),
+                'min_amount_eth': min(amounts),
+                'total_volume_eth': sum(amounts),
+                'first_seen': first_seen,
+                'last_seen': last_seen,
+                'days_since_last': days_since_last
+            }
+
+            self.logger.debug(
+                f"Whale {whale_address[:10]}... stats: "
+                f"{stats['total_transactions']} txns, "
+                f"avg {stats['avg_amount_eth']:.2f} ETH"
+            )
+
+            return stats
+
+        except Exception as e:
+            self.logger.error(f"Error calculating whale statistics: {str(e)}")
+            return {}  # Graceful degradation

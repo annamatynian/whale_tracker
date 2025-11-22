@@ -399,6 +399,44 @@ class DetectionRepository(ABC):
         """
         pass
 
+    @abstractmethod
+    async def get_whale_statistics(
+        self,
+        whale_address: str,
+        days: int = 30
+    ) -> dict:
+        """
+        Get activity statistics for a specific whale address.
+
+        This method provides historical behavior analysis for AI context enrichment.
+        Handles cold start gracefully (returns empty dict if no data).
+
+        Args:
+            whale_address: Ethereum address of the whale
+            days: Number of days to look back (default: 30)
+
+        Returns:
+            dict: Whale statistics or empty dict if no data
+                {
+                    'total_transactions': int,      # Number of detections
+                    'avg_amount_eth': float,        # Average transaction amount
+                    'max_amount_eth': float,        # Largest transaction
+                    'min_amount_eth': float,        # Smallest transaction
+                    'total_volume_eth': float,      # Total volume
+                    'first_seen': datetime,         # First detection timestamp
+                    'last_seen': datetime,          # Last detection timestamp
+                    'days_since_last': int          # Days since last activity
+                }
+
+        Example:
+            >>> stats = await repo.get_whale_statistics('0xabc...', days=30)
+            >>> if stats:
+            >>>     print(f"Whale avg: {stats['avg_amount_eth']} ETH")
+            >>> else:
+            >>>     print("New whale - no history")
+        """
+        pass
+
     # ==================== Utility ====================
 
     @abstractmethod
