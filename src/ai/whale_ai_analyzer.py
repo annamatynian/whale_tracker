@@ -522,7 +522,7 @@ async def create_whale_ai_analyzer(
     Raises:
         ValueError: If provider names are invalid
     """
-    from .providers import DeepSeekProvider, GeminiProvider, GroqProvider
+    from .providers import DeepSeekProvider, GroqProvider, get_gemini_provider
     from ..abstractions.llm_provider import LLMRole
 
     # Create primary LLM
@@ -539,6 +539,9 @@ async def create_whale_ai_analyzer(
     validator_llm = None
     if enable_validator:
         if validator_provider == "gemini":
+            GeminiProvider = get_gemini_provider()
+            if GeminiProvider is None:
+                raise ValueError("GeminiProvider not available. Please install google-generativeai.")
             validator_llm = GeminiProvider(
                 role=LLMRole.VALIDATOR,
                 temperature=0.7,
