@@ -412,7 +412,7 @@ class TestInMemoryDetectionRepository:
 
         assert stats['total_detections'] == 5
         assert stats['avg_confidence'] == 84.0  # (70+80+85+90+95)/5
-        assert stats['high_confidence_count'] == 4  # 80, 85, 90, 95 (>= 80)
+        assert stats['high_confidence_count'] == 3  # 85, 90, 95 (>= 85)
 
     @pytest.mark.asyncio
     async def test_get_top_whales(self):

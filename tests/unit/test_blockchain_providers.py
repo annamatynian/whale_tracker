@@ -7,6 +7,7 @@ Tests BlockchainDataProvider abstraction and implementations.
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
 from datetime import datetime
+from aioresponses import aioresponses
 
 from src.abstractions.blockchain_data_provider import BlockchainDataProvider
 from src.providers.etherscan_provider import EtherscanProvider
@@ -174,25 +175,21 @@ class TestEtherscanProvider:
         """API errors are properly handled."""
         provider = EtherscanProvider(api_key='test_key')
 
-        # Mock error API response
-        mock_response = AsyncMock()
-        mock_response.raise_for_status = Mock()
-        mock_response.json = AsyncMock(return_value={
-            'status': '0',
-            'message': 'NOTOK',
-            'result': 'Error! Invalid address format'
-        })
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock()
+        # Mock error API response using aioresponses with regex to match any params
+        import re
+        with aioresponses() as mocked:
+            mocked.get(
+                re.compile(r'https://api\.etherscan\.io/api.*'),
+                payload={
+                    'status': '0',
+                    'message': 'NOTOK',
+                    'result': 'Error! Invalid address format'
+                },
+                status=200
+            )
 
-        mock_session = AsyncMock()
-        mock_session.get = Mock(return_value=mock_response)
-        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session.__aexit__ = AsyncMock()
-
-        with patch('aiohttp.ClientSession', return_value=mock_session):
             with pytest.raises(Exception) as exc_info:
-                await provider.get_balance('invalid_address')
+                await provider.get_balance('0x1234567890123456789012345678901234567890')
 
             assert 'Etherscan API error' in str(exc_info.value)
 
@@ -397,7 +394,7 @@ class TestBlockchainProviderIntegration:
         provider1.is_available = True
         call_count = {'count': 0}
 
-        async def flaky_balance(address):
+        async def flaky_balance(address, block_number=None):
             call_count['count'] += 1
             if call_count['count'] == 1:
                 raise Exception('Temporary failure')
