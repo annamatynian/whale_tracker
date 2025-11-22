@@ -161,12 +161,14 @@ class OneHopDetectionResponse(OneHopDetectionBase):
 
     # Status
     status: str
+    notes: Optional[str] = None
     alert_sent: bool
     alert_sent_at: Optional[datetime]
 
     # Metadata
     detected_at: datetime
     updated_at: datetime
+    notes: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
