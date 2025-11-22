@@ -311,6 +311,63 @@ async def test_full_monitoring_cycle(web3_manager):
         raise
 
 
+async def test_telegram_notifications():
+    """Test 8: Telegram Notification System"""
+    logger.info("\n" + "="*80)
+    logger.info("TEST 8: Telegram Notification System")
+    logger.info("="*80)
+
+    try:
+        from src.providers.telegram_provider import TelegramProvider
+
+        # Check if credentials are set
+        telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
+        telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
+
+        if not telegram_token or not telegram_chat_id:
+            logger.info("ℹ️  Telegram credentials not set - skipping test")
+            logger.info("   Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to test")
+            return None
+
+        logger.info("Creating Telegram provider...")
+        provider = TelegramProvider(
+            bot_token=telegram_token,
+            chat_id=telegram_chat_id
+        )
+
+        # Test connection
+        logger.info("Testing Telegram bot connection...")
+        is_connected = await provider.test_connection()
+
+        if is_connected:
+            logger.info("✅ SUCCESS: Telegram bot is connected")
+
+            # Send test message
+            logger.info("\nSending test notification...")
+            test_message = (
+                "🧪 **Whale Tracker Test**\n\n"
+                "This is a test notification from the real API integration tests.\n\n"
+                "If you see this message, Telegram notifications are working! ✅"
+            )
+
+            success = await provider.send_message(test_message)
+
+            if success:
+                logger.info("✅ SUCCESS: Test notification sent")
+                logger.info("   Check your Telegram to see the message!")
+            else:
+                raise Exception("Failed to send test notification")
+        else:
+            raise Exception("Failed to connect to Telegram bot")
+
+        return provider
+
+    except Exception as e:
+        logger.error(f"❌ FAILED: {str(e)}")
+        logger.info("   Note: Check TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID")
+        return None
+
+
 async def main():
     """Run all real API tests"""
     logger.info("\n" + "🔥"*40)
@@ -320,7 +377,7 @@ async def main():
     results = {
         'passed': 0,
         'failed': 0,
-        'total': 7
+        'total': 8
     }
 
     web3_manager = None
@@ -385,6 +442,17 @@ async def main():
         except Exception as e:
             results['failed'] += 1
             logger.error(f"Test 7 failed: {e}")
+
+    try:
+        # Test 8: Telegram Notifications
+        telegram_provider = await test_telegram_notifications()
+        if telegram_provider:
+            results['passed'] += 1
+        else:
+            results['failed'] += 1
+    except Exception as e:
+        results['failed'] += 1
+        logger.error(f"Test 8 failed: {e}")
 
     # Final Report
     logger.info("\n" + "="*80)
