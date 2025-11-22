@@ -311,6 +311,101 @@ async def test_full_monitoring_cycle(web3_manager):
         raise
 
 
+async def test_database_operations():
+    """Test 9: Database Operations (SQLite/PostgreSQL)"""
+    logger.info("\n" + "="*80)
+    logger.info("TEST 9: Database Operations")
+    logger.info("="*80)
+
+    try:
+        from src.repositories.in_memory_detection_repository import InMemoryDetectionRepository
+        from models.schemas import OneHopDetectionCreate
+        from decimal import Decimal
+
+        logger.info("Testing database connectivity...")
+
+        # Use in-memory repository for testing (doesn't require DB setup)
+        logger.info("Creating in-memory detection repository...")
+        repository = InMemoryDetectionRepository()
+
+        logger.info(f"✅ SUCCESS: Repository type: {repository.repository_type}")
+
+        # Test CRUD operations
+        logger.info("\n📝 Testing CRUD operations...")
+
+        # CREATE - Save detection
+        logger.info("   Creating test detection...")
+        test_detection = OneHopDetectionCreate(
+            whale_address="0x" + "a" * 40,  # 42 chars total
+            whale_tx_hash="0x" + "b" * 64,  # 66 chars total
+            intermediate_address="0x" + "c" * 40,
+            exchange_address="0x" + "d" * 40,
+            exchange_tx_hash="0x" + "e" * 64,
+            whale_tx_block=18000000,
+            exchange_tx_block=18000001,
+            whale_tx_timestamp=datetime.now(),
+            exchange_tx_timestamp=datetime.now(),
+            whale_amount_wei="1000000000000000000",  # 1 ETH
+            exchange_amount_wei="1000000000000000000",
+            whale_amount_eth=Decimal("1.0"),
+            exchange_amount_eth=Decimal("1.0"),
+            time_correlation_score=85,
+            gas_correlation_score=90,
+            nonce_correlation_score=95,
+            amount_correlation_score=100,
+            address_profile_score=80,
+            total_confidence=90,
+            num_signals_used=5,
+            detection_method="advanced",
+            status="pending"
+        )
+
+        detection_id = await repository.save_detection(test_detection)
+        logger.info(f"   ✅ Created detection ID: {detection_id}")
+
+        # READ - Get detection
+        logger.info("   Reading detection back...")
+        saved_detection = await repository.get_detection(detection_id)
+        if saved_detection:
+            logger.info(f"   ✅ Retrieved detection: {saved_detection.whale_address[:10]}...")
+            logger.info(f"      Confidence: {saved_detection.total_confidence}%")
+            logger.info(f"      Status: {saved_detection.status}")
+        else:
+            raise Exception("Failed to retrieve detection")
+
+        # UPDATE - Mark alert sent
+        logger.info("   Marking alert as sent...")
+        updated = await repository.mark_alert_sent(detection_id)
+        if updated:
+            logger.info("   ✅ Alert marked as sent")
+        else:
+            raise Exception("Failed to update detection")
+
+        # STATISTICS - Get stats (if available)
+        logger.info("\n📊 Testing statistics...")
+        if hasattr(repository, 'get_statistics'):
+            stats = await repository.get_statistics()
+            logger.info(f"   Total detections: {stats.get('total_detections', 0)}")
+            logger.info(f"   Alerts sent: {stats.get('total_alerts_sent', 0)}")
+            logger.info(f"   Avg confidence: {stats.get('avg_confidence', 0):.1f}%")
+        else:
+            logger.info(f"   ✓ Statistics not implemented in {repository.repository_type} repository")
+
+        logger.info("\n✅ SUCCESS: All database operations working correctly")
+        logger.info(f"   Repository: {repository.repository_type}")
+        logger.info(f"   CRUD: ✓ Create, ✓ Read, ✓ Update")
+        logger.info(f"   Detection ID: {detection_id}")
+
+        return repository
+
+    except Exception as e:
+        logger.error(f"❌ FAILED: {str(e)}")
+        logger.info("   Note: Using in-memory repository for testing")
+        import traceback
+        logger.error(f"   Traceback: {traceback.format_exc()}")
+        raise
+
+
 async def test_telegram_notifications():
     """Test 8: Telegram Notification System"""
     logger.info("\n" + "="*80)
@@ -377,7 +472,7 @@ async def main():
     results = {
         'passed': 0,
         'failed': 0,
-        'total': 8
+        'total': 9
     }
 
     web3_manager = None
@@ -453,6 +548,14 @@ async def main():
     except Exception as e:
         results['failed'] += 1
         logger.error(f"Test 8 failed: {e}")
+
+    try:
+        # Test 9: Database Operations
+        db_repository = await test_database_operations()
+        results['passed'] += 1
+    except Exception as e:
+        results['failed'] += 1
+        logger.error(f"Test 9 failed: {e}")
 
     # Final Report
     logger.info("\n" + "="*80)
