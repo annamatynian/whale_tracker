@@ -44,6 +44,13 @@ async def test_rpc_connection():
         # Create Web3Manager WITHOUT mock mode
         web3_manager = Web3Manager(mock_mode=False)
 
+        # Initialize Web3 connection (CRITICAL!)
+        logger.info("Initializing Web3 connection...")
+        initialized = await web3_manager.initialize()
+
+        if not initialized:
+            raise Exception("Failed to initialize Web3 connection")
+
         # Test connection by getting gas price
         logger.info("Testing connection to Ethereum mainnet...")
         gas_price = await web3_manager.get_current_gas_price()
