@@ -95,8 +95,31 @@ class Web3Manager:
         """
         Get RPC URL for specified network.
         
+        Priority:
+        1. Environment variable (ETH_RPC_URL)
+        2. Fallback to public RPCs
+        
         Args:
             network: Network name
+        """
+        # Check for custom RPC URL from environment
+        custom_rpc = os.getenv('ETH_RPC_URL')
+        if custom_rpc and network == 'ethereum_mainnet':
+            self.logger.info(f"✅ Using custom RPC from ETH_RPC_URL")
+            return custom_rpc
+        
+        # Fallback to public RPCs (with rate limits!)
+        if network == 'ethereum_mainnet':
+            self.logger.warning("⚠️  Using PUBLIC RPC - Add ETH_RPC_URL to .env for better performance!")
+            return 'https://eth.llamarpc.com'  # Public fallback
+        elif network == 'ethereum_sepolia':
+            return 'https://rpc.sepolia.org'
+        elif network == 'polygon':
+            return 'https://polygon-rpc.com'
+        elif network == 'arbitrum':
+            return 'https://arb1.arbitrum.io/rpc'
+        else:
+            raise ValueError(f"Unknown network: {network}")
             
         Returns:
             str: RPC URL
