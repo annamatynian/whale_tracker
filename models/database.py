@@ -6,10 +6,10 @@ Database schema for one-hop detection, transactions, and analytics.
 
 from sqlalchemy import (
     Column, Integer, String, BigInteger, Boolean, DateTime,
-    DECIMAL, Text, Index, ForeignKey, JSON
+    DECIMAL, Text, Index, ForeignKey, JSON, text
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
 Base = declarative_base()
@@ -335,4 +335,135 @@ class SignalMetrics(Base):
             f"<SignalMetrics(signal={self.signal_name}, "
             f"date={self.date.date()}, "
             f"precision={self.precision})>"
+        )
+
+
+class AccumulationMetric(Base):
+    """
+    Collective whale accumulation metrics with LST correction.
+    
+    WHY: Tracks aggregate whale behavior (not individual whales)
+    PHASE 2: Includes MAD anomaly detection, Gini index, smart tags
+    
+    Schema matches Alembic migration: 2026_01_19_2100-b7c8d9e0f1a2
+    """
+    __tablename__ = 'accumulation_metrics'
+    
+    # Primary key
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Basic metadata
+    token_symbol = Column(String(10), nullable=False, index=True)
+    whale_count = Column(Integer, nullable=False)
+    
+    # Native ETH balance metrics (backward compatibility)
+    total_balance_current_wei = Column(String(78), nullable=False)
+    total_balance_historical_wei = Column(String(78), nullable=False)
+    total_balance_change_wei = Column(String(78), nullable=False)
+    total_balance_current_eth = Column(DECIMAL(36, 18), nullable=False)
+    total_balance_historical_eth = Column(DECIMAL(36, 18), nullable=False)
+    total_balance_change_eth = Column(DECIMAL(36, 18), nullable=False)
+    accumulation_score = Column(DECIMAL(10, 4), nullable=False)
+    
+    # ============================================
+    # LST CORRECTION FIELDS (Phase 2)
+    # ============================================
+    
+    # LST Balance Tracking
+    total_weth_balance_eth = Column(DECIMAL(36, 18), nullable=True)
+    total_steth_balance_eth = Column(DECIMAL(36, 18), nullable=True)
+    lst_adjusted_score = Column(DECIMAL(36, 18), nullable=True)  # FIXED: precision from migration c9d0e1f2a3b4
+    lst_migration_count = Column(Integer, nullable=False, default=0)
+    steth_eth_rate = Column(DECIMAL(10, 6), nullable=True)
+    
+    # Smart Tags System
+    tags = Column(ARRAY(String(50)), nullable=False, default=[])
+    
+    # Statistical Quality Metrics
+    concentration_gini = Column(DECIMAL(10, 6), nullable=True)
+    num_signals_used = Column(Integer, nullable=False, default=0)  # NEW: from migration d0e1f2a3b4c5
+    num_signals_excluded = Column(Integer, nullable=False, default=0)  # NEW: from migration d0e1f2a3b4c5
+    is_anomaly = Column(Boolean, nullable=False, default=False)
+    mad_threshold = Column(DECIMAL(36, 18), nullable=True)  # FIXED: precision from migration c9d0e1f2a3b4
+    top_anomaly_driver = Column(String(42), nullable=True)
+    
+    # Price Context (for Bullish Divergence)
+    price_change_48h_pct = Column(DECIMAL(10, 4), nullable=True)
+    
+    # ============================================
+    # WHALE DISTRIBUTION
+    # ============================================
+    accumulators_count = Column(Integer, nullable=False)
+    distributors_count = Column(Integer, nullable=False)
+    neutral_count = Column(Integer, nullable=False)
+    
+    # ============================================
+    # METADATA
+    # ============================================
+    current_block_number = Column(BigInteger, nullable=False)
+    historical_block_number = Column(BigInteger, nullable=False)
+    lookback_hours = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    
+    # Indexes (match Alembic migration)
+    __table_args__ = (
+        Index('idx_accumulation_token_time', 'token_symbol', 'created_at'),
+        Index('idx_accumulation_created_at', 'created_at'),
+        Index('idx_accumulation_anomaly', 'is_anomaly', 'created_at', postgresql_where=text('is_anomaly = true')),
+        Index('idx_accumulation_tags', 'tags', postgresql_using='gin'),
+    )
+    
+    def __repr__(self):
+        return (
+            f"<AccumulationMetric(id={self.id}, "
+            f"symbol={self.token_symbol}, "
+            f"score={self.lst_adjusted_score or self.accumulation_score:.2f}%, "
+            f"whales={self.whale_count}, "
+            f"tags={self.tags})>"
+        )
+
+
+class WhaleBalanceSnapshot(Base):
+    """
+    Hourly balance snapshots for top whale addresses.
+    
+    WHY: Enables historical balance comparisons without archive node.
+    Stores snapshots every hour to track whale accumulation/distribution.
+    
+    GEMINI: "Snapshot system is industry standard for avoiding expensive archive nodes"
+    """
+    __tablename__ = 'whale_balance_snapshots'
+    
+    # Primary key
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Whale identification
+    address = Column(String(42), nullable=False, index=True)
+    
+    # Balance data
+    balance_wei = Column(String(78), nullable=False)  # String for precision
+    balance_eth = Column(DECIMAL(36, 18), nullable=False)
+    
+    # Blockchain reference
+    block_number = Column(BigInteger, nullable=False)
+    network = Column(String(20), nullable=False, index=True)  # 'ethereum', 'bitcoin', etc.
+    
+    # Timing
+    snapshot_timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    
+    # Indexes for efficient queries
+    __table_args__ = (
+        Index('idx_snapshot_address_time', 'address', 'snapshot_timestamp'),
+        Index('idx_snapshot_network_time', 'network', 'snapshot_timestamp'),
+        # Prevent duplicate snapshots for same address at same time
+        Index('idx_snapshot_unique', 'address', 'snapshot_timestamp', 'network', unique=True),
+    )
+    
+    def __repr__(self):
+        return (
+            f"<WhaleBalanceSnapshot(id={self.id}, "
+            f"address={self.address[:10]}..., "
+            f"balance_eth={self.balance_eth}, "
+            f"timestamp={self.snapshot_timestamp})>"
         )

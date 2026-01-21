@@ -5,7 +5,7 @@ Separate validation layer from database models.
 Provides input validation and API serialization.
 """
 
-from pydantic import BaseModel, Field, validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from decimal import Decimal
@@ -23,14 +23,16 @@ class TransactionBase(BaseModel):
     value_eth: Decimal = Field(..., description="Transaction value in ETH")
     nonce: int = Field(..., ge=0, description="Transaction nonce")
 
-    @validator('tx_hash')
+    @field_validator('tx_hash')
+    @classmethod
     def validate_tx_hash(cls, v):
         """Validate transaction hash format"""
         if not v.startswith('0x'):
             raise ValueError('Transaction hash must start with 0x')
         return v.lower()
 
-    @validator('from_address', 'to_address')
+    @field_validator('from_address', 'to_address')
+    @classmethod
     def validate_address(cls, v):
         """Validate Ethereum address format"""
         if v is None:
@@ -81,7 +83,8 @@ class OneHopDetectionBase(BaseModel):
     intermediate_address: str = Field(..., min_length=42, max_length=42)
     exchange_address: Optional[str] = Field(None, min_length=42, max_length=42)
 
-    @validator('whale_address', 'intermediate_address', 'exchange_address')
+    @field_validator('whale_address', 'intermediate_address', 'exchange_address')
+    @classmethod
     def validate_addresses(cls, v):
         """Validate address format"""
         if v is None:
@@ -123,7 +126,8 @@ class OneHopDetectionCreate(OneHopDetectionBase):
     signal_details: Optional[Dict[str, Any]] = None
     notes: Optional[str] = None
 
-    @validator('detection_method')
+    @field_validator('detection_method')
+    @classmethod
     def validate_detection_method(cls, v):
         """Validate detection method"""
         allowed = ['simple', 'advanced', 'manual']
@@ -176,7 +180,8 @@ class OneHopDetectionUpdate(BaseModel):
     status: Optional[str] = Field(None, description="Detection status")
     notes: Optional[str] = None
 
-    @validator('status')
+    @field_validator('status')
+    @classmethod
     def validate_status(cls, v):
         """Validate status"""
         if v is not None:
@@ -192,7 +197,8 @@ class IntermediateAddressBase(BaseModel):
     """Base intermediate address schema"""
     address: str = Field(..., min_length=42, max_length=42)
 
-    @validator('address')
+    @field_validator('address')
+    @classmethod
     def validate_address(cls, v):
         """Validate address format"""
         if not v.startswith('0x'):
@@ -234,7 +240,8 @@ class IntermediateAddressCreate(IntermediateAddressBase):
     profile_details: Optional[Dict[str, Any]] = None
     notes: Optional[str] = None
 
-    @validator('profile_type')
+    @field_validator('profile_type')
+    @classmethod
     def validate_profile_type(cls, v):
         """Validate profile type"""
         allowed = ['fresh_burner', 'burner', 'professional', 'fresh', 'empty', 'normal', 'unknown', 'error']
@@ -276,7 +283,8 @@ class WhaleAlertBase(BaseModel):
     severity: str = Field('medium', description="Alert severity")
     confidence: int = Field(..., ge=0, le=100, description="Confidence score")
 
-    @validator('alert_type')
+    @field_validator('alert_type')
+    @classmethod
     def validate_alert_type(cls, v):
         """Validate alert type"""
         allowed = ['one_hop', 'large_transfer', 'accumulation', 'unusual_activity']
@@ -284,7 +292,8 @@ class WhaleAlertBase(BaseModel):
             raise ValueError(f'Alert type must be one of: {allowed}')
         return v
 
-    @validator('severity')
+    @field_validator('severity')
+    @classmethod
     def validate_severity(cls, v):
         """Validate severity"""
         allowed = ['low', 'medium', 'high', 'critical']
@@ -306,7 +315,8 @@ class WhaleAlertCreate(WhaleAlertBase):
     delivery_method: str = Field(..., description="Delivery method")
     recipient_id: Optional[str] = Field(None, max_length=100)
 
-    @validator('delivery_method')
+    @field_validator('delivery_method')
+    @classmethod
     def validate_delivery_method(cls, v):
         """Validate delivery method"""
         allowed = ['telegram', 'email', 'webhook', 'discord', 'slack']
@@ -361,7 +371,8 @@ class SignalMetricsCreate(SignalMetricsBase):
     avg_confidence_when_positive: Optional[Decimal] = Field(None, ge=0, le=100)
     avg_confidence_overall: Optional[Decimal] = Field(None, ge=0, le=100)
 
-    @validator('signal_name')
+    @field_validator('signal_name')
+    @classmethod
     def validate_signal_name(cls, v):
         """Validate signal name"""
         allowed = ['time', 'gas', 'nonce', 'amount', 'address', 'composite']
@@ -444,3 +455,28 @@ class BulkOperationResponse(BaseModel):
     updated_count: int = 0
     failed_count: int = 0
     errors: Optional[List[str]] = None
+
+# ==================== Accumulation Metrics Schemas ====================
+
+class AccumulationMetricCreate(BaseModel):
+    """Schema для создания accumulation метрики."""
+    network: str = Field(..., pattern="^(bitcoin|ethereum|usdt)$")
+    score: float = Field(..., ge=0.0, le=1.0)
+    addresses_analyzed: int = Field(..., gt=0)
+    total_balance_change: Decimal
+    measurement_period_days: int = Field(default=30)
+    
+    top_accumulators: Optional[List[Dict]] = None
+    top_distributors: Optional[List[Dict]] = None
+    calculation_duration_ms: Optional[int] = None
+
+
+class AccumulationMetricResponse(BaseModel):
+    """Schema для API responses."""
+    id: int
+    network: str
+    score: float
+    addresses_analyzed: int
+    calculated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)

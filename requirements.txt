@@ -1,41 +1,30 @@
-# Whale Tracker Dependencies
-# ==========================
+# Whale Tracker - Production Dependencies
 
-# Web3 and blockchain
-web3>=6.0.0
-eth-account>=0.8.0
+# Core
+asyncio
+aiohttp>=3.9.0
 
-# Async HTTP
-aiohttp>=3.8.0
-aiofiles>=23.0.0
+# Database
+sqlalchemy>=2.0.0
+asyncpg>=0.29.0
+alembic>=1.13.0
+psycopg2-binary>=2.9.9
 
-# Configuration
-pydantic>=2.0.0
-pydantic-settings>=2.0.0
-python-dotenv>=1.0.0
-PyYAML>=6.0
+# Blockchain
+web3>=6.15.0
+
+# Data & Math
+pandas>=2.1.0
+numpy>=1.24.0
 
 # Scheduling
 APScheduler>=3.10.0
 
-# Data processing (for whale_analyzer)
-pandas>=2.0.0
-numpy>=1.24.0
+# Validation
+pydantic>=2.5.0
 
-# Testing
-pytest>=7.0.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.0.0
+# Notifications
+python-telegram-bot==20.7  # Для Telegram API
 
-# Logging
-colorlog>=6.7.0
-
-# AI Analysis (NOW IMPLEMENTED - Phase 4)
-openai>=1.0.0  # For DeepSeek and Groq (OpenAI-compatible APIs)
-google-generativeai>=0.3.0  # For Gemini Flash (FREE validator)
-
-# Database (Phase 2) - NOW IMPLEMENTED
-sqlalchemy>=2.0.0  # ORM for database abstraction
-alembic>=1.12.0  # Database migrations
-psycopg2-binary>=2.9.0  # PostgreSQL adapter
-asyncpg>=0.29.0  # Async PostgreSQL driver
+# Utilities
+python-dotenv>=1.0.0

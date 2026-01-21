@@ -27,3 +27,14 @@ development:
 
 performance:
   max_concurrent_requests: 5  # Lower for dev to avoid hitting rate limits
+
+database:
+  db_type: postgresql
+  db_host: localhost
+  db_port: 5432
+  db_name: whale_tracker
+  db_user: postgres
+  db_password: Jayaasiri2185
+  db_pool_size: 5
+  db_max_overflow: 10
+  db_echo: false

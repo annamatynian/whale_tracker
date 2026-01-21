@@ -11,6 +11,15 @@
 *.env
 !.env.example
 
+# AWS keys and PEM files (CRITICAL!)
+*.pem
+*.ppk
+aws-credentials.txt
+
+# Notification config with tokens (CRITICAL!)
+config/notification_config.py
+!config/notification_config.example.py
+
 # Python
 __pycache__/
 *.py[cod]

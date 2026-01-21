@@ -214,6 +214,19 @@ class WhaleTrackerOrchestrator:
             await self.detection_repo.test_connection()
             self.logger.info("DetectionRepository initialized (SQL)")
 
+            # ==================== PHASE 2: SNAPSHOT SYSTEM ====================
+            self.logger.info("Initializing snapshot system (Phase 2)...")
+
+            # Create AsyncDatabaseManager for snapshots
+            from models.db_connection import AsyncDatabaseManager
+            snapshot_db_manager = AsyncDatabaseManager(config=db_config)
+
+            # Store for cleanup
+            self.snapshot_db_manager = snapshot_db_manager
+
+            self.logger.info("✅ Snapshot database manager initialized")
+            # ==================================================================
+
             # Initialize MarketDataService for market data (Phase 5)
             market_data_service = None
             if self.settings.phases.get('phase5_market_data', {}).get('enabled', True):
@@ -367,6 +380,22 @@ class WhaleTrackerOrchestrator:
             )
 
             self.logger.info(f"Scheduled monitoring job: every {check_interval_minutes} minutes")
+
+            # ==================== PHASE 2: HOURLY SNAPSHOT JOB ====================
+            self.logger.info("Adding hourly snapshot job to scheduler...")
+
+            self.scheduler.add_job(
+                func=self.run_hourly_snapshot,
+                trigger=IntervalTrigger(hours=1),
+                id='hourly_snapshot',
+                name='Hourly Whale Balance Snapshot',
+                max_instances=1,
+                replace_existing=True
+            )
+
+            self.logger.info("✅ Hourly snapshot job scheduled (every 1 hour)")
+            # ======================================================================
+
             self.logger.info("Scheduler setup complete")
 
         except Exception as e:
@@ -391,6 +420,57 @@ class WhaleTrackerOrchestrator:
         except Exception as e:
             self.logger.error(f"Error starting scheduler: {str(e)}")
             raise
+
+    async def run_hourly_snapshot(self) -> None:
+        """
+        Run hourly snapshot job.
+
+        Saves current balances of top 1000 whales to database.
+        Enables historical analysis without archive node.
+
+        Called by: APScheduler (every hour)
+        """
+        try:
+            self.logger.info("🕐 Starting hourly snapshot job...")
+
+            # Get fresh session
+            async with self.snapshot_db_manager.session() as session:
+                # Import components
+                from src.repositories.snapshot_repository import SnapshotRepository
+                from src.data.whale_list_provider import WhaleListProvider
+                from src.data.multicall_client import MulticallClient
+                from src.jobs.snapshot_job import SnapshotJob
+
+                # Create snapshot repository
+                snapshot_repo = SnapshotRepository(session=session)
+
+                # Create MulticallClient
+                multicall_client = MulticallClient(web3_manager=self.web3_manager)
+
+                # Create WhaleListProvider
+                whale_provider = WhaleListProvider(
+                    multicall_client=multicall_client,
+                    min_balance_eth=1000
+                )
+
+                # Create SnapshotJob
+                snapshot_job = SnapshotJob(
+                    whale_provider=whale_provider,
+                    multicall_client=multicall_client,
+                    snapshot_repo=snapshot_repo,
+                    whale_limit=1000,
+                    network="ethereum"
+                )
+
+                # Run snapshot
+                saved_count = await snapshot_job.run_hourly_snapshot()
+
+                self.logger.info(
+                    f"✅ Hourly snapshot complete: {saved_count} snapshots saved"
+                )
+
+        except Exception as e:
+            self.logger.error(f"❌ Hourly snapshot job failed: {e}", exc_info=True)
 
     async def run_once(self) -> None:
         """
@@ -424,6 +504,16 @@ class WhaleTrackerOrchestrator:
             except Exception as e:
                 self.logger.error(f"Error stopping MarketDataService: {e}")
 
+        # Close snapshot database manager
+        if hasattr(self, 'snapshot_db_manager') and self.snapshot_db_manager:
+            self.logger.info("Closing snapshot database connections...")
+            try:
+                import asyncio
+                asyncio.run(self.snapshot_db_manager.close())
+                self.logger.info("Snapshot database closed")
+            except Exception as e:
+                self.logger.error(f"Error closing snapshot DB: {e}")
+
         self.shutdown_requested = True
         self.logger.info("Orchestrator stopped")
 
@@ -456,6 +546,16 @@ async def main_async():
     try:
         # Initialize components
         await orchestrator.setup()
+
+        # ==================== PHASE 2: INITIAL SNAPSHOT ====================
+        # Run first snapshot immediately (don't wait 1 hour)
+        orchestrator.logger.info("Running initial snapshot...")
+        try:
+            await orchestrator.run_hourly_snapshot()
+        except Exception as e:
+            orchestrator.logger.error(f"Initial snapshot failed: {e}")
+            orchestrator.logger.warning("Continuing without initial snapshot...")
+        # ===================================================================
 
         # Check if running in test mode
         if '--once' in sys.argv:
